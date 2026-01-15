@@ -1,0 +1,164 @@
+# Modelo de Monetización — Imagen@rte
+
+**Documento interno**  
+**Versión:** 1.0  
+**Fecha:** 2026-01-13  
+**Estado:** Canónico (MVP)
+
+---
+
+## 1. Propósito del modelo
+
+Este documento define el modelo de monetización de Imagen@rte para el MVP,
+alineado con los principios de:
+
+- Offline-first
+- D0 estricto
+- Soberanía del usuario
+- Transparencia
+- Confianza, no coerción
+
+El objetivo es:
+- permitir prueba real del producto sin fricción
+- ofrecer un upgrade claro y justo
+- evitar dark patterns, paywalls agresivos o dependencia cloud
+
+---
+
+## 2. Principio rector
+
+> Imagen@rte no monetiza datos.  
+> Monetiza **acciones conscientes de exportación**.
+
+Nunca se limita:
+- edición
+- pruebas
+- ajustes
+- visualización
+
+Solo se limita la **acción de exportar**.
+
+---
+
+## 3. Unidad de consumo
+
+### Unidad única: Exportación
+
+- 1 exportación = 1 archivo final guardado
+- Aplica a imágenes y videos por igual
+- La cantidad de operaciones previas no cuenta
+- Re-exportar cuenta como una nueva exportación
+
+Este enfoque:
+- reduce ansiedad del usuario
+- incentiva prueba libre
+- es percibido como justo
+
+---
+
+## 4. Planes definidos (MVP)
+
+### 4.1 Plan Free
+
+**Precio:** USD 0  
+**Límite:** 8 exportaciones por mes (reset mensual local)
+
+**Incluye:**
+- Tratamiento completo de imágenes
+- Pixelado de rostro
+- Blur selectivo
+- Crop inteligente
+- Limpieza de metadatos EXIF
+- Watermark invisible básico (HMAC + LSB)
+
+**Restricciones:**
+- Watermark visible obligatorio (texto fijo, no editable)
+- Exportar comprobante (manifest) deshabilitado
+- Video deshabilitado o limitado (1 exportación máxima, si existe)
+- Ajustes de protección por defecto deshabilitados
+
+---
+
+### 4.2 Plan Pro
+
+**Precio:** USD 1.99 / mes  
+**Renovación:** mensual  
+**Límite:** exportaciones ilimitadas
+
+**Incluye todo lo anterior, más:**
+- Watermark visible editable
+- Watermark invisible + exportación de comprobante
+- Video habilitado (cuando exista)
+- Ajustes de protección por defecto
+- Eliminación de cualquier marca obligatoria
+
+---
+
+## 5. Implementación técnica (MVP)
+
+### 5.1 Sin backend obligatorio
+
+- El conteo es **local**
+- No hay tracking remoto
+- No se envían métricas
+- No hay identificación del usuario
+
+Variables mínimas:
+- `period_start`
+- `exports_used_this_period`
+- `plan_type` (free | pro)
+
+El reset se realiza:
+- por fecha local
+- sin sincronización externa
+
+---
+
+### 5.2 Anti-abuso (enfoque honesto)
+
+- No se implementa DRM fuerte
+- No se persigue evasión deliberada
+- El modelo se basa en confianza
+
+Quien quiera romper el límite puede hacerlo.
+El sistema no penaliza al usuario legítimo.
+
+---
+
+## 6. Comunicación al usuario
+
+### Plan Free
+> “Incluye hasta 8 exportaciones por mes. Ideal para probar sin compromisos.”
+
+### Plan Pro
+> “Exportaciones ilimitadas y control completo de tu identidad visual.”
+
+No se utilizan:
+- mensajes de culpa
+- urgencia artificial
+- contadores agresivos
+- bloqueos inesperados
+
+---
+
+## 7. Reglas explícitas
+
+- Nunca bloquear acceso a la app
+- Nunca borrar trabajo del usuario
+- Nunca ocultar el límite
+- Nunca sorprender con paywalls
+
+---
+
+## 8. Revisión futura
+
+Este modelo:
+- puede ajustarse en precio
+- puede ajustarse en límites
+- no es irreversible
+
+Cualquier cambio debe documentarse como nueva versión.
+
+---
+
+**Fin del documento**

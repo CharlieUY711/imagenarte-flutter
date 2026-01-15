@@ -1,0 +1,65 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --frame-scale: 1;
+}
+
+body {
+    background-color: #0B0B0D;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.frame-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+.url-badge {
+    position: absolute;
+    top: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    z-index: 10;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+}
+
+.device {
+    width: 390px;
+    height: 844px;
+    border-radius: 28px;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    position: relative;
+    transform: scale(var(--frame-scale));
+    transform-origin: center center;
+}
+
+.device iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000;
+    display: block;
+}

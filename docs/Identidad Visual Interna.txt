@@ -1,0 +1,186 @@
+# Identidad Visual Interna — Imagen@rte
+
+**Documento interno — No UX, no marketing, no UI obligatoria**  
+**Versión:** 1.0  
+**Fecha:** 2026-01-13  
+**Estado:** Canónico
+
+---
+
+## 1. Propósito del documento
+
+Este documento registra principios **identitarios y conceptuales** de Imagen@rte
+que NO constituyen requerimientos funcionales ni decisiones de UI obligatorias.
+
+Su objetivo es:
+- preservar coherencia visual a largo plazo
+- servir como referencia silenciosa para diseño y producto
+- evitar decisiones estéticas arbitrarias
+
+Este documento **no reemplaza**:
+- PRD
+- Brief UX/UI
+- Decisiones de Figma
+- Implementación Flutter
+
+---
+
+## 2. Motivo conceptual: “Eje 14:45 / @”
+
+### 2.1 Origen de la idea
+
+La identidad visual de Imagen@rte incorpora un motivo conceptual inspirado en:
+
+- la lógica de un **reloj analógico**
+- el símbolo **“@”** como centro de la identidad digital
+- el concepto de **momento previo**, no de consumo ni publicación
+
+La composición se basa en una disposición equivalente a las **14:45** en un reloj:
+
+- diagonal dominante
+- tensión suave
+- sensación de proceso activo
+- ausencia de simetría perfecta
+
+---
+
+### 2.2 Significado semántico
+
+Este motivo representa tres ideas clave del producto:
+
+**Tiempo consciente**
+Imagen@rte actúa antes de publicar.
+Es una herramienta de preparación, no de exhibición.
+
+**Control**
+No hay edición caótica ni juego visual.
+Todo gira alrededor de decisiones claras y deliberadas.
+
+**Identidad**
+El símbolo “@” representa la identidad pública.
+El contenido se ordena en torno a ella, no al revés.
+
+---
+
+## 3. Principios de uso (OBLIGATORIOS)
+
+### 3.1 Regla fundamental
+
+> El motivo debe sentirse más de lo que se ve.  
+> Si se nota demasiado, está mal aplicado.
+
+---
+
+### 3.2 Qué ES este motivo
+
+- Una **lógica compositiva**
+- Un **eje visual**
+- Una **firma silenciosa**
+- Un recurso para estados de proceso y transición
+
+---
+
+### 3.3 Qué NO es este motivo
+
+- ❌ Un reloj literal
+- ❌ Un logo
+- ❌ Un elemento decorativo
+- ❌ Un patrón repetitivo
+- ❌ Una animación circular continua
+
+---
+
+## 4. Reglas visuales estrictas
+
+### 4.1 Prohibiciones absolutas
+
+NO utilizar:
+- números de reloj
+- agujas explícitas
+- círculos completos cerrados
+- rotaciones 360°
+- animaciones constantes
+- simetría perfecta
+
+---
+
+### 4.2 Composición permitida
+
+- Arcos incompletos
+- Líneas radiales parciales
+- Composiciones diagonales
+- Centro sugerido (no marcado)
+- Movimiento parcial y estable
+
+---
+
+### 4.3 Uso del símbolo “@”
+
+- El “@” es **centro semántico**, no protagonista visual
+- Puede aparecer:
+  - implícito
+  - insinuado
+  - tipográficamente
+- Nunca debe ser pesado ni dominante
+
+---
+
+## 5. Ámbitos permitidos de aplicación
+
+Este motivo puede utilizarse en:
+
+- Fondos sutiles (opacidad baja)
+- Estados de carga / procesamiento
+- Stepper o progresión del wizard
+- Ilustraciones abstractas internas
+- Watermark visible discreto (si aplica)
+
+---
+
+## 6. Ámbitos prohibidos de aplicación
+
+Este motivo NO debe utilizarse en:
+
+- Botones
+- Toggles
+- Sliders
+- Formularios
+- Estados de error
+- Alertas
+- Confirmaciones críticas
+- Branding agresivo
+
+---
+
+## 7. Relación con UX/UI
+
+- Este motivo **NO define layouts**
+- NO obliga a usarlo en todas las pantallas
+- NO tiene prioridad sobre claridad funcional
+- UX siempre prevalece sobre identidad visual
+
+El uso es **opcional, contextual y sutil**.
+
+---
+
+## 8. Relación con Figma
+
+En Figma:
+- Este motivo se comunica como **guía interpretativa**
+- Nunca como instrucción rígida
+- Su aplicación debe ser evaluada caso a caso
+
+Si el diseño funciona mejor sin él, **no se usa**.
+
+---
+
+## 9. Regla final
+
+Imagen@rte no necesita “decoración”.
+Necesita **calma, control y silencio visual**.
+
+Este motivo existe para reforzar eso, no para competir con el contenido.
+
+---
+
+**Fin del documento**  

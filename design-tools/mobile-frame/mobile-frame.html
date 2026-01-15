@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagen@rte — Mobile Frame (Diseño)</title>
+    <link rel="stylesheet" href="mobile-frame.css">
+</head>
+<body>
+    <div class="frame-container">
+        <div class="url-badge" id="url-badge"></div>
+        <div class="device" id="device">
+            <iframe 
+                id="app-frame"
+                src="http://localhost:8080"
+                title="Imagen@rte App Preview"
+                frameborder="0"
+            ></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de URL (cambiar aquí para apuntar a otro puerto)
+        const APP_URL = 'http://localhost:8080';
+        
+        // Actualizar iframe con la URL configurada
+        const appFrame = document.getElementById('app-frame');
+        appFrame.src = APP_URL;
+        
+        // Actualizar badge con la URL
+        document.getElementById('url-badge').textContent = APP_URL;
+    </script>
+</body>
+</html>
