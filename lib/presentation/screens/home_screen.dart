@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
+import 'package:imagenarte/presentation/screens/editor_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -23,7 +24,11 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                // Placeholder: sin funcionalidad todavía
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const EditorScreen(),
+                  ),
+                );
               },
               child: const Text('Seleccionar imagen'),
             ),
