@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../ui/screens/home/home_screen.dart';
 import '../ui/screens/wizard/wizard_screen.dart';
 import '../ui/screens/export/export_screen.dart';
-import '../presentation/screens/editor_screen.dart';
 import '../presentation/screens/editor_screen_visual.dart';
 import '../utils/debug_gate.dart';
+import '../config/feature_flags.dart';
 import 'package:core/domain/roi.dart';
 import 'package:core/domain/operation.dart';
 import 'package:core/application/editor_controller.dart';
@@ -23,7 +23,15 @@ class AppRouter {
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
       case wizard:
-        return MaterialPageRoute(builder: (_) => const WizardScreen());
+        // BLOQUEO: Wizard v0.10 solo accesible si el flag está habilitado
+        // Si está deshabilitado, redirigir al Prototipo (Editor)
+        if (FeatureFlags.kEnableWizardV010) {
+          return MaterialPageRoute(builder: (_) => const WizardScreen());
+        }
+        // Redirigir al Prototipo cuando el Wizard está bloqueado
+        return MaterialPageRoute(
+          builder: (_) => const EditorScreenVisual(),
+        );
       case export:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(

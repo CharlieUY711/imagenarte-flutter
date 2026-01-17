@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../navigation/app_router.dart';
 import '../../../utils/debug_gate.dart';
+import '../../../config/feature_flags.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -65,14 +66,17 @@ class HomeScreen extends StatelessWidget {
                           textStyle: const TextStyle(fontSize: 18),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRouter.wizard);
-                        },
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text('Wizard (completo)'),
-                      ),
+                      // BLOQUEO: Botón Wizard solo visible si el flag está habilitado
+                      if (FeatureFlags.kEnableWizardV010) ...[
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRouter.wizard);
+                          },
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('Wizard (completo)'),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: null, // Deshabilitado por ahora

@@ -79,8 +79,8 @@ class _PlatformImageState extends State<PlatformImage> {
           responseType: 'arraybuffer',
         );
         
-        final arrayBuffer = response.response as html.ArrayBuffer;
-        final bytes = Uint8List.view(arrayBuffer);
+        final byteBuffer = response.response as ByteBuffer;
+        final bytes = Uint8List.view(byteBuffer);
         
         if (mounted) {
           setState(() {
