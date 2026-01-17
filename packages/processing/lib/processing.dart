@@ -12,3 +12,4 @@ export 'engines/video/frame_extractor_engine.dart';
 export 'engines/video/face_detection_engine.dart';
 export 'engines/video/tracker_engine.dart';
 export 'engines/video/renderer_engine.dart';
+export 'infrastructure/imaging/image_adjustments_processor.dart';

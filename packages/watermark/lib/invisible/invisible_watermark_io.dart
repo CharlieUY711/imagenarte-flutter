@@ -84,7 +84,8 @@ class InvisibleWatermark {
         bitIndex++;
       }
       
-      final newPixel = img.ColorRgb8(r, g, b);
+      // Crear nuevo pixel usando getColor (formato ARGB)
+      final newPixel = img.getColor(r, g, b);
       image.setPixel(pos.x, pos.y, newPixel);
     }
 

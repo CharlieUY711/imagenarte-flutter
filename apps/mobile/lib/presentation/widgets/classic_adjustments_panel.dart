@@ -100,9 +100,9 @@ class ClassicAdjustmentsPanel extends StatelessWidget {
         ),
         Slider(
           value: value,
-          min: -1.0,
-          max: 1.0,
-          divisions: 20,
+          min: -100.0,
+          max: 100.0,
+          divisions: 200,
           activeColor: AppTokens.accentOrange,
           inactiveColor: AppTokens.neutralMedium,
           onChanged: onChanged,

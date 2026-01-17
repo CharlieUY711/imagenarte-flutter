@@ -24,7 +24,8 @@ class ExportEncoders {
       case 'jpeg':
         return Uint8List.fromList(img.encodeJpg(image, quality: quality));
       case 'webp':
-        return Uint8List.fromList(img.encodeWebP(image, quality: quality));
+        // WebP no está disponible en image 3.3.0, usar JPG como fallback
+        return Uint8List.fromList(img.encodeJpg(image, quality: quality));
       default:
         // Por defecto JPG
         return Uint8List.fromList(img.encodeJpg(image, quality: quality));

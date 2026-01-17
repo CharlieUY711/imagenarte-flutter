@@ -144,8 +144,8 @@ export function ClassicAdjustments({ values, onChange, active = false, onActivat
 }
 
 export const initialClassicAdjustments: ClassicAdjustmentsState = {
-  brightness: 50,
-  contrast: 50,
-  saturation: 50,
-  sharpness: 50,
+  brightness: 50, // 50 = 0 en rango -100..+100 (neutral)
+  contrast: 50,   // 50 = 0 en rango -100..+100 (neutral)
+  saturation: 50, // 50 = 0 en rango -100..+100 (neutral)
+  sharpness: 0,   // 0 = sin efecto de nitidez
 };

@@ -2,13 +2,78 @@ import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
-import 'package:core/application/editor_controller.dart';
+import 'package:core/application/editor_controller.dart' show EditorController, EffectMode, ColorPreset;
 import 'package:core/domain/roi.dart';
 import 'package:core/domain/export_profile.dart';
 import 'package:core/usecases/export_media.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:processing/processing.dart';
 import 'editor_controller_factory.dart';
+
+/// Snapshot del estado del editor para el historial
+/// 
+/// Almacena una copia profunda del estado necesario para restaurar
+/// el editor a un punto anterior.
+class EditorStateSnapshot {
+  final List<ROI> rois;
+  final bool autoFaceEnabled;
+  final EffectMode effectMode;
+  final int effectIntensity;
+  final String? selectedRoiId;
+  final double brightness;
+  final double contrast;
+  final double saturation;
+  final ColorPreset colorPreset;
+  final Uint8List? imageBytes;
+  final String? imagePath;
+  final int? imageWidth;
+  final int? imageHeight;
+
+  EditorStateSnapshot({
+    required this.rois,
+    required this.autoFaceEnabled,
+    required this.effectMode,
+    required this.effectIntensity,
+    this.selectedRoiId,
+    this.brightness = 0.0,
+    this.contrast = 0.0,
+    this.saturation = 0.0,
+    this.colorPreset = ColorPreset.color,
+    this.imageBytes,
+    this.imagePath,
+    this.imageWidth,
+    this.imageHeight,
+  });
+
+  /// Crea una copia profunda del snapshot
+  EditorStateSnapshot copy() {
+    // Deep copy de la lista de ROIs (ROI es inmutable, pero la lista no)
+    final roisCopy = rois.map((roi) => roi.copyWith()).toList();
+    
+    // Deep copy de imageBytes si existe
+    Uint8List? imageBytesCopy;
+    if (imageBytes != null) {
+      imageBytesCopy = Uint8List.fromList(imageBytes!);
+    }
+
+    return EditorStateSnapshot(
+      rois: roisCopy,
+      autoFaceEnabled: autoFaceEnabled,
+      effectMode: effectMode,
+      effectIntensity: effectIntensity,
+      selectedRoiId: selectedRoiId,
+      brightness: brightness,
+      contrast: contrast,
+      saturation: saturation,
+      colorPreset: colorPreset,
+      imageBytes: imageBytesCopy,
+      imagePath: imagePath,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+    );
+  }
+}
 
 /// ViewModel que adapta EditorController para la UI
 /// 
@@ -22,6 +87,16 @@ class EditorViewModel extends ChangeNotifier {
   bool _isBusy = false;
   String? _error;
 
+  // Sistema de historial (Undo/Redo)
+  // Mínimo 10 niveles según requerimiento del PRD
+  // 10 niveles permite al usuario deshacer una secuencia razonable de operaciones
+  // sin consumir demasiada memoria. Se implementa como FIFO: cuando se excede
+  // el límite, se elimina el snapshot más antiguo.
+  static const int _maxUndoLevels = 10; // Mínimo requerido: 10 niveles de undo
+  
+  final List<EditorStateSnapshot> _undoStack = [];
+  final List<EditorStateSnapshot> _redoStack = [];
+
   EditorViewModel({
     required EditorController controller,
     required ExportMedia exportMedia,
@@ -31,12 +106,105 @@ class EditorViewModel extends ChangeNotifier {
   // Getters de estado
   bool get autoFaceEnabled => _controller.autoFaceEnabled;
   List<ROI> get rois => _controller.rois;
+  String? get selectedRoiId => _controller.selectedRoiId;
+  ROI? get activeRoi => _controller.getActiveRoi();
+  bool get hasActiveRoi => _controller.hasActiveRoi();
+  double get brightness => _controller.brightness;
+  double get contrast => _controller.contrast;
+  double get saturation => _controller.saturation;
+  ColorPreset get colorPreset => _controller.colorPreset;
   bool get isBusy => _isBusy;
   String? get error => _error;
   String? get imagePath => _controller.imagePath;
   Uint8List? get imageBytes => _controller.imageBytes;
   int? get imageWidth => _controller.imageWidth;
   int? get imageHeight => _controller.imageHeight;
+  
+  // Getters de historial
+  bool get canUndo => _undoStack.isNotEmpty;
+  int get undoCount => _undoStack.length;
+
+  /// Guarda el estado actual en el historial ANTES de aplicar cambios
+  /// 
+  /// Este método debe llamarse antes de cualquier operación que mute el estado.
+  void _commitToHistory() {
+    // Crear snapshot del estado actual
+    final snapshot = EditorStateSnapshot(
+      rois: List.from(_controller.rois), // Copia de la lista
+      autoFaceEnabled: _controller.autoFaceEnabled,
+      effectMode: _controller.effectMode,
+      effectIntensity: _controller.effectIntensity,
+      selectedRoiId: _controller.selectedRoiId,
+      brightness: _controller.brightness,
+      contrast: _controller.contrast,
+      saturation: _controller.saturation,
+      colorPreset: _controller.colorPreset,
+      imageBytes: _controller.imageBytes != null 
+          ? Uint8List.fromList(_controller.imageBytes!) 
+          : null,
+      imagePath: _controller.imagePath,
+      imageWidth: _controller.imageWidth,
+      imageHeight: _controller.imageHeight,
+    );
+
+    // Agregar al stack de undo
+    _undoStack.add(snapshot);
+
+    // Limitar a _maxUndoLevels (FIFO: remover el más antiguo)
+    if (_undoStack.length > _maxUndoLevels) {
+      _undoStack.removeAt(0);
+    }
+
+    // Limpiar redo stack cuando se hace una acción nueva
+    _redoStack.clear();
+  }
+
+  /// Restaura el estado desde un snapshot
+  void _restoreFromSnapshot(EditorStateSnapshot snapshot) {
+    // Restaurar estado completo usando el método del controller
+    _controller.restoreState(
+      rois: snapshot.rois,
+      autoFaceEnabled: snapshot.autoFaceEnabled,
+      effectMode: snapshot.effectMode,
+      effectIntensity: snapshot.effectIntensity,
+      selectedRoiId: snapshot.selectedRoiId,
+      brightness: snapshot.brightness,
+      contrast: snapshot.contrast,
+      saturation: snapshot.saturation,
+      colorPreset: snapshot.colorPreset,
+    );
+  }
+
+  /// Deshace la última operación
+  void undo() {
+    if (!canUndo) return;
+
+    // Guardar estado actual en redo stack antes de deshacer
+    final currentSnapshot = EditorStateSnapshot(
+      rois: List.from(_controller.rois),
+      autoFaceEnabled: _controller.autoFaceEnabled,
+      effectMode: _controller.effectMode,
+      effectIntensity: _controller.effectIntensity,
+      selectedRoiId: _controller.selectedRoiId,
+      brightness: _controller.brightness,
+      contrast: _controller.contrast,
+      saturation: _controller.saturation,
+      colorPreset: _controller.colorPreset,
+      imageBytes: _controller.imageBytes != null 
+          ? Uint8List.fromList(_controller.imageBytes!) 
+          : null,
+      imagePath: _controller.imagePath,
+      imageWidth: _controller.imageWidth,
+      imageHeight: _controller.imageHeight,
+    );
+    _redoStack.add(currentSnapshot);
+
+    // Restaurar estado anterior
+    final previousSnapshot = _undoStack.removeLast();
+    _restoreFromSnapshot(previousSnapshot);
+    
+    notifyListeners();
+  }
 
   /// Inicializa el editor con una imagen
   /// 
@@ -51,6 +219,9 @@ class EditorViewModel extends ChangeNotifier {
 
     try {
       await _controller.loadImageFromBytes(bytes);
+      // Limpiar historial al cargar nueva imagen
+      _undoStack.clear();
+      _redoStack.clear();
       notifyListeners();
     } catch (e) {
       _setError('Error al cargar imagen: $e');
@@ -66,6 +237,9 @@ class EditorViewModel extends ChangeNotifier {
 
     try {
       await _controller.loadImage(imagePath);
+      // Limpiar historial al cargar nueva imagen
+      _undoStack.clear();
+      _redoStack.clear();
       notifyListeners();
     } catch (e) {
       _setError('Error al cargar imagen: $e');
@@ -81,6 +255,7 @@ class EditorViewModel extends ChangeNotifier {
     _clearError();
 
     try {
+      _commitToHistory(); // Guardar estado antes de cambiar
       await _controller.toggleAutoFace(on);
       notifyListeners();
     } catch (e) {
@@ -98,6 +273,7 @@ class EditorViewModel extends ChangeNotifier {
     _clearError();
 
     try {
+      _commitToHistory(); // Guardar estado antes de re-detectar
       await _controller.redetectFaces();
       notifyListeners();
     } catch (e) {
@@ -115,6 +291,7 @@ class EditorViewModel extends ChangeNotifier {
     }
 
     try {
+      _commitToHistory(); // Guardar estado antes de agregar ROI
       // Crear ROI centrada (20% del tamaño de la imagen)
       final centerX = 0.5 - 0.1; // 0.4
       final centerY = 0.5 - 0.1; // 0.4
@@ -142,6 +319,7 @@ class EditorViewModel extends ChangeNotifier {
     double? height,
   }) {
     try {
+      _commitToHistory(); // Guardar estado antes de actualizar ROI
       _controller.updateRoi(
         id,
         x: x,
@@ -158,10 +336,109 @@ class EditorViewModel extends ChangeNotifier {
   /// Elimina una ROI
   void deleteRoi(String id) {
     try {
+      _commitToHistory(); // Guardar estado antes de eliminar ROI
       _controller.deleteRoi(id);
+      // Si se eliminó la ROI activa, limpiar selección
+      if (_controller.selectedRoiId == id) {
+        _controller.setSelectedRoiId(null);
+      }
       notifyListeners();
     } catch (e) {
       _setError('Error al eliminar ROI: $e');
+    }
+  }
+  
+  /// Establece la ROI seleccionada (activa)
+  /// 
+  /// NOTA: No hace commit al historial porque cambiar selección no es una operación
+  /// que deba deshacerse. Solo cambia qué ROI está activa para aplicar herramientas.
+  void setSelectedRoiId(String? roiId) {
+    try {
+      _controller.setSelectedRoiId(roiId);
+      notifyListeners();
+    } catch (e) {
+      _setError('Error al seleccionar ROI: $e');
+    }
+  }
+  
+  /// Establece el brillo
+  void setBrightness(double value) {
+    _commitToHistory(); // Guardar estado antes de cambiar ajuste
+    _controller.setBrightness(value);
+    notifyListeners();
+  }
+  
+  /// Establece el contraste
+  void setContrast(double value) {
+    _commitToHistory(); // Guardar estado antes de cambiar ajuste
+    _controller.setContrast(value);
+    notifyListeners();
+  }
+  
+  /// Establece la saturación
+  void setSaturation(double value) {
+    _commitToHistory(); // Guardar estado antes de cambiar ajuste
+    _controller.setSaturation(value);
+    notifyListeners();
+  }
+  
+  /// Establece el preset de color
+  void setColorPreset(ColorPreset preset) {
+    _commitToHistory(); // Guardar estado antes de cambiar preset
+    _controller.setColorPreset(preset);
+    notifyListeners();
+  }
+  
+  /// Establece el modo de efecto (pixelate/blur)
+  void setEffectMode(EffectMode mode) {
+    _commitToHistory(); // Guardar estado antes de aplicar herramienta
+    _controller.setEffectMode(mode);
+    notifyListeners();
+  }
+  
+  /// Establece la intensidad del efecto (1-10)
+  void setEffectIntensity(int intensity) {
+    _commitToHistory(); // Guardar estado antes de cambiar intensidad
+    _controller.setEffectIntensity(intensity);
+    notifyListeners();
+  }
+  
+  /// Obtiene los bytes de la imagen procesada con ajustes aplicados
+  /// 
+  /// Usado para preview en tiempo real.
+  /// Aplica ajustes según la regla: si hay ROI activa, solo a esa ROI; si no, globalmente.
+  Future<Uint8List?> getProcessedImageBytes() async {
+    if (_controller.imageBytes == null || 
+        _controller.imageWidth == null || 
+        _controller.imageHeight == null) {
+      return null;
+    }
+
+    // Si no hay ajustes ni preset, retornar imagen original
+    if (_controller.brightness == 0.0 && 
+        _controller.contrast == 0.0 && 
+        _controller.saturation == 0.0 && 
+        _controller.colorPreset == ColorPreset.color) {
+      return _controller.imageBytes;
+    }
+
+    try {
+      final activeRoi = _controller.getActiveRoi();
+      final adjustmentsProcessor = ImageAdjustmentsProcessor();
+      
+      return await adjustmentsProcessor.applyAdjustments(
+        imageBytes: _controller.imageBytes!,
+        brightness: _controller.brightness,
+        contrast: _controller.contrast,
+        saturation: _controller.saturation,
+        colorPreset: _controller.colorPreset,
+        roi: activeRoi,
+        imageWidth: _controller.imageWidth!,
+        imageHeight: _controller.imageHeight!,
+      );
+    } catch (e) {
+      _setError('Error al procesar imagen: $e');
+      return _controller.imageBytes; // Fallback a original
     }
   }
 
@@ -199,12 +476,43 @@ class EditorViewModel extends ChangeNotifier {
         'imagenarte_export_$timestamp.$extension',
       );
 
-      // Procesar ROIs antes de exportar (si hay ROIs)
+      // Procesar imagen: primero ajustes, luego ROIs
       String processedImagePath = sourceImagePath;
-      if (_controller.rois.isNotEmpty) {
+      
+      // 1. Aplicar ajustes (brightness, contrast, saturation, color preset)
+      // Si hay ROI activa, aplicar solo a esa ROI; si no, aplicar globalmente
+      final activeRoi = _controller.getActiveRoi();
+      final adjustmentsProcessor = ImageAdjustmentsProcessor();
+      
+      final imageBytesForAdjustments = await File(processedImagePath).readAsBytes();
+      final adjustedBytes = await adjustmentsProcessor.applyAdjustments(
+        imageBytes: imageBytesForAdjustments,
+        brightness: _controller.brightness,
+        contrast: _controller.contrast,
+        saturation: _controller.saturation,
+        colorPreset: _controller.colorPreset,
+        roi: activeRoi,
+        imageWidth: _controller.imageWidth!,
+        imageHeight: _controller.imageHeight!,
+      );
+      
+      // Guardar imagen con ajustes aplicados
+      final tempDir = await getTemporaryDirectory();
+      final adjustedPath = path.join(
+        tempDir.path,
+        'editor_adjusted_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await File(adjustedPath).writeAsBytes(adjustedBytes);
+      processedImagePath = adjustedPath;
+      
+      // 2. Procesar ROIs (pixelate/blur) 
+      // REGLA: Si hay ROI activa, aplicar SOLO a esa ROI; si no, aplicar a todas las ROIs
+      final roisToProcess = activeRoi != null ? [activeRoi] : _controller.rois;
+      
+      if (roisToProcess.isNotEmpty) {
         processedImagePath = await EditorControllerFactory.processRois(
-          imagePath: sourceImagePath,
-          rois: _controller.rois,
+          imagePath: processedImagePath,
+          rois: roisToProcess,
           effectMode: _controller.effectMode,
           effectIntensity: _controller.effectIntensity,
         );

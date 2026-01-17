@@ -69,8 +69,8 @@ export function DialButton({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       className={`
-        relative w-full px-3 rounded-md transition-all duration-300
-        h-[30px] flex items-center
+        relative w-full px-3 rounded-sm transition-all duration-300
+        h-[33px] flex items-center
         ${active 
           ? 'border-2 border-orange-500 bg-[#1C1C1E] cursor-ew-resize' 
           : 'border-[1px] border-border bg-[#1C1C1E] hover:bg-[#2C2C2E] active:bg-[#2C2C2E] cursor-pointer'

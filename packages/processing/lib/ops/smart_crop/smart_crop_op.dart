@@ -42,10 +42,10 @@ class SmartCropOp {
 
     final cropped = img.copyCrop(
       image,
-      x: offsetX,
-      y: offsetY,
-      width: cropWidth,
-      height: cropHeight,
+      offsetX,
+      offsetY,
+      cropWidth,
+      cropHeight,
     );
 
     final outputPath = '${imagePath}_cropped.jpg';

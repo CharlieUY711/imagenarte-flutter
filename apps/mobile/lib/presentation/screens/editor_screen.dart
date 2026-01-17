@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../widgets/bottom_control_panel.dart';
 import '../adapters/editor_view_model.dart';
 import '../adapters/editor_controller_factory.dart';
 import 'package:core/domain/roi.dart';
+import 'package:core/application/editor_controller.dart' show EffectMode;
 
 /// Pantalla principal del Editor
 /// Layout general que integra todos los componentes UI
@@ -34,11 +36,12 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isActionDialExpanded = false;
   bool _isAdjustmentsPanelVisible = false;
   
-  // Valores de ajustes (mock, sin lógica real)
-  double _brightness = 0.0;
-  double _contrast = 0.0;
-  double _saturation = 0.0;
-
+  // Imagen procesada para preview (con ajustes aplicados)
+  Uint8List? _processedImageBytes;
+  
+  // Timer para debounce de actualización de preview
+  Timer? _previewUpdateTimer;
+  
   // Formato de export (default JPG)
   String _exportFormat = 'jpg';
 
@@ -60,6 +63,32 @@ class _EditorScreenState extends State<EditorScreen> {
     if (widget.imagePath != null) {
       // Cargar desde path
       await _viewModel.initWithImagePath(widget.imagePath!);
+      _updateProcessedImage();
+    }
+  }
+  
+  /// Actualiza la imagen procesada para el preview
+  /// Usa debounce para evitar procesar en cada cambio de slider
+  void _updateProcessedImage({bool immediate = false}) {
+    _previewUpdateTimer?.cancel();
+    
+    if (immediate) {
+      _previewUpdateTimer = null;
+      _doUpdateProcessedImage();
+    } else {
+      // Debounce: esperar 150ms después del último cambio
+      _previewUpdateTimer = Timer(const Duration(milliseconds: 150), () {
+        _doUpdateProcessedImage();
+      });
+    }
+  }
+  
+  Future<void> _doUpdateProcessedImage() async {
+    final processed = await _viewModel.getProcessedImageBytes();
+    if (mounted) {
+      setState(() {
+        _processedImageBytes = processed;
+      });
     }
   }
 
@@ -153,6 +182,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   void dispose() {
+    _previewUpdateTimer?.cancel();
     _viewModel.dispose();
     super.dispose();
   }
@@ -208,17 +238,56 @@ class _EditorScreenState extends State<EditorScreen> {
                     child: Stack(
                       children: [
                         PreviewArea(
-                          imagePath: _viewModel.imagePath,
-                          imageBytes: _viewModel.imageBytes,
+                          imagePath: null, // Usar bytes procesados en lugar de path
+                          imageBytes: _processedImageBytes ?? _viewModel.imageBytes,
                           rois: _viewModel.rois,
-                          onRoiSelected: (_) {},
+                          onRoiSelected: (roi) {
+                            _viewModel.setSelectedRoiId(roi.id);
+                            _updateProcessedImage(immediate: true);
+                          },
                           onRoiUpdated: (id, x, y, width, height) {
                             _viewModel.updateRoi(id, x: x, y: y, width: width, height: height);
+                            _updateProcessedImage(immediate: true);
                           },
                           onRoiDeleted: (id) {
                             _viewModel.deleteRoi(id);
+                            _updateProcessedImage(immediate: true);
                           },
                         ),
+                        
+                        // Indicador visual "Aplicando a selección" cuando hay ROI activa
+                        if (_viewModel.hasActiveRoi)
+                          Positioned(
+                            top: 16,
+                            left: 16,
+                            right: 16,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.crop_free,
+                                    size: 16,
+                                    color: Colors.white70,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Aplicando a selección',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         
                         // Loading overlay si está procesando
                         if (_viewModel.isBusy)
@@ -259,17 +328,20 @@ class _EditorScreenState extends State<EditorScreen> {
                   // Classic Adjustments Panel (si está visible)
                   if (_isAdjustmentsPanelVisible && !_viewModel.isBusy)
                     ClassicAdjustmentsPanel(
-                      brightness: _brightness,
-                      contrast: _contrast,
-                      saturation: _saturation,
+                      brightness: _viewModel.brightness,
+                      contrast: _viewModel.contrast,
+                      saturation: _viewModel.saturation,
                       onBrightnessChanged: (value) {
-                        setState(() => _brightness = value);
+                        _viewModel.setBrightness(value);
+                        _updateProcessedImage(); // Con debounce
                       },
                       onContrastChanged: (value) {
-                        setState(() => _contrast = value);
+                        _viewModel.setContrast(value);
+                        _updateProcessedImage(); // Con debounce
                       },
                       onSaturationChanged: (value) {
-                        setState(() => _saturation = value);
+                        _viewModel.setSaturation(value);
+                        _updateProcessedImage(); // Con debounce
                       },
                     ),
                   
@@ -279,17 +351,55 @@ class _EditorScreenState extends State<EditorScreen> {
                       height: MediaQuery.of(context).size.height * 0.4,
                       child: BottomControlPanel(
                         onPixelateFace: () {
-                          // TODO: Implementar pixelar rostro
+                          // Aplicar pixelado: si hay ROI activa, solo a esa; si no, a todas
+                          if (_viewModel.rois.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Primero crea una selección (ROI)'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          _viewModel.setEffectMode(EffectMode.pixelate);
+                          _viewModel.setEffectIntensity(5); // Intensidad por defecto
+                          _updateProcessedImage(immediate: true);
                         },
                         onBlurSelective: () {
-                          // TODO: Implementar blur selectivo
+                          // Aplicar blur: si hay ROI activa, solo a esa; si no, a todas
+                          if (_viewModel.rois.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Primero crea una selección (ROI)'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          _viewModel.setEffectMode(EffectMode.blur);
+                          _viewModel.setEffectIntensity(5); // Intensidad por defecto
+                          _updateProcessedImage(immediate: true);
                         },
                         onCropIntensity: () {
-                          // TODO: Implementar intensidad de crop
+                          // TODO: Implementar intensidad de crop (no es parte del flujo E2E actual)
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Funcionalidad en desarrollo'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
                         },
-                        onBack: _handleBack,
-                        onSave: _viewModel.isBusy ? null : _handleSave,
-                        isSaving: _viewModel.isBusy,
+                        // Undo siempre visible
+                        onUndo: _viewModel.canUndo ? () {
+                          _viewModel.undo();
+                          _updateProcessedImage(immediate: true);
+                        } : null,
+                        canUndo: _viewModel.canUndo,
+                        // Grabar al final del menú
+                        onSave: _viewModel.imageBytes != null ? () {
+                          _handleSave();
+                        } : null,
+                        hasImage: _viewModel.imageBytes != null,
                       ),
                     ),
                 ],

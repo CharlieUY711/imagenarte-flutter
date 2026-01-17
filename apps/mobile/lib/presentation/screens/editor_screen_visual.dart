@@ -134,9 +134,6 @@ class _EditorScreenVisualState extends State<EditorScreenVisual> {
                     // Mock - solo para visualización
                     HapticFeedback.lightImpact();
                   },
-                  onBack: () {
-                    Navigator.of(context).pop();
-                  },
                   onSave: () {
                     // Mock - solo para visualización
                     setState(() {
@@ -156,7 +153,7 @@ class _EditorScreenVisualState extends State<EditorScreenVisual> {
                       }
                     });
                   },
-                  isSaving: _isSaving,
+                  hasImage: true,
                 ),
               ),
             ],

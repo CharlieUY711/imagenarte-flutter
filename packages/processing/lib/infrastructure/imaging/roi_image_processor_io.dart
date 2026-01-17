@@ -28,7 +28,7 @@ class RoiImageProcessor {
     }
 
     // Crear una copia de la imagen
-    final processed = img.copy(image);
+    final processed = image.clone();
 
     // Aplicar pixelado en cada ROI
     for (final roi in rois) {
@@ -37,10 +37,10 @@ class RoiImageProcessor {
       // Recortar región
       final cropped = img.copyCrop(
         processed,
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
+        rect.x,
+        rect.y,
+        rect.width,
+        rect.height,
       );
 
       // Aplicar pixelado
@@ -58,11 +58,12 @@ class RoiImageProcessor {
       );
 
       // Componer de vuelta en la imagen original
-      img.compositeImage(
+      img.drawImage(
         processed,
         pixelated,
         dstX: rect.x,
         dstY: rect.y,
+        blend: true,
       );
     }
 
@@ -93,7 +94,7 @@ class RoiImageProcessor {
     }
 
     // Crear una copia de la imagen
-    final processed = img.copy(image);
+    final processed = image.clone();
 
     // Aplicar blur en cada ROI
     for (final roi in rois) {
@@ -102,22 +103,23 @@ class RoiImageProcessor {
       // Recortar región
       final cropped = img.copyCrop(
         processed,
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
+        rect.x,
+        rect.y,
+        rect.width,
+        rect.height,
       );
 
       // Aplicar blur
       final radius = intensity.clamp(1, 10);
-      final blurred = img.gaussianBlur(cropped, radius: radius);
+      final blurred = img.gaussianBlur(cropped, radius);
 
       // Componer de vuelta en la imagen original
-      img.compositeImage(
+      img.drawImage(
         processed,
         blurred,
         dstX: rect.x,
         dstY: rect.y,
+        blend: true,
       );
     }
 

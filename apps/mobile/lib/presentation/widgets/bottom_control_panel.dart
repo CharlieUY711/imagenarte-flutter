@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'custom_icons.dart';
 
 /// Panel de control inferior según el diseño de la imagen
 /// Incluye: barra de herramientas naranja, botones de opciones, controles de aspecto, etc.
@@ -7,18 +8,22 @@ class BottomControlPanel extends StatelessWidget {
   final VoidCallback? onPixelateFace;
   final VoidCallback? onBlurSelective;
   final VoidCallback? onCropIntensity;
-  final VoidCallback? onBack;
+  
+  // Callbacks para Undo y Grabar
+  final VoidCallback? onUndo;
+  final bool canUndo; // Si hay historial disponible
   final VoidCallback? onSave;
-  final bool isSaving;
+  final bool hasImage; // Si hay imagen cargada
 
   const BottomControlPanel({
     super.key,
     this.onPixelateFace,
     this.onBlurSelective,
     this.onCropIntensity,
-    this.onBack,
+    this.onUndo,
+    this.canUndo = false,
     this.onSave,
-    this.isSaving = false,
+    this.hasImage = false,
   });
 
   @override
@@ -44,12 +49,30 @@ class BottomControlPanel extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
+                _buildToolIcon(Icons.home, onTap: () {}),
                 _buildToolIcon(Icons.crop_free, onTap: () {}),
                 _buildToolIcon(Icons.open_with, onTap: () {}),
-                _buildToolIcon(Icons.aspect_ratio, onTap: () {}),
-                _buildToolIcon(Icons.rotate_right, onTap: () {}),
-                _buildToolIcon(Icons.pan_tool, onTap: () {}),
-                _buildToolIcon(Icons.undo, onTap: () {}),
+                _buildToolIcon(Icons.content_cut, onTap: () {}),
+                _buildCustomIcon(
+                  const AdjustmentsIcon(isActive: false, color: Colors.white),
+                  onTap: () {},
+                ),
+                _buildCustomIcon(
+                  const ColorPresetsIcon(isActive: false, color: Colors.white),
+                  onTap: () {},
+                ),
+                // Botón Undo - SIEMPRE visible (disabled si no hay historial)
+                _buildToolIcon(
+                  Icons.undo,
+                  onTap: canUndo ? onUndo : null,
+                  isEnabled: canUndo,
+                ),
+                // Botón Grabar - al final del menú
+                _buildToolIcon(
+                  Icons.save,
+                  onTap: hasImage ? onSave : null,
+                  isEnabled: hasImage,
+                ),
               ],
             ),
           ),
@@ -124,75 +147,14 @@ class BottomControlPanel extends StatelessWidget {
               ),
             ),
           ),
-          
-          // Botones de navegación (Volver / Grabar)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTokens.neutralDark,
-              border: Border(
-                top: BorderSide(
-                  color: AppTokens.neutralMedium.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Botón Volver
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onBack,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTokens.accentOrange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('Volver'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Botón Grabar
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: isSaving ? null : onSave,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTokens.accentOrange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.save, size: 18),
-                    label: const Text('Grabar'),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildToolIcon(IconData icon, {VoidCallback? onTap}) {
+  Widget _buildToolIcon(IconData icon, {VoidCallback? onTap, bool isEnabled = true}) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isEnabled ? onTap : null,
       child: Container(
         width: 36,
         height: 36,
@@ -202,8 +164,25 @@ class BottomControlPanel extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          color: Colors.white,
+          color: isEnabled ? Colors.white : Colors.white.withOpacity(0.4),
           size: 20,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomIcon(Widget icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Center(
+          child: icon,
         ),
       ),
     );

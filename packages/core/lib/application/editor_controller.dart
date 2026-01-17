@@ -12,6 +12,14 @@ enum EffectMode {
   blur,
 }
 
+/// Preset de color
+enum ColorPreset {
+  color,    // Sin filtro
+  grayscale, // Escala de grises
+  sepia,    // Sepia
+  bw,       // Blanco y negro
+}
+
 /// Controller único para el editor de imágenes
 /// 
 /// Orquesta la detección facial, gestión de ROIs y exportación.
@@ -27,8 +35,18 @@ class EditorController {
   
   bool _autoFaceEnabled = true;
   List<ROI> _rois = [];
+  String? _selectedRoiId;
   EffectMode _effectMode = EffectMode.pixelate;
   int _effectIntensity = 5;
+  
+  // Ajustes clásicos (brightness, contrast, saturation)
+  // Valores en rango -100 a +100, donde 0 es neutral
+  double _brightness = 0.0;
+  double _contrast = 0.0;
+  double _saturation = 0.0;
+  
+  // Preset de color
+  ColorPreset _colorPreset = ColorPreset.color;
 
   EditorController(this._detectFacesUseCase);
 
@@ -39,8 +57,26 @@ class EditorController {
   String? get imagePath => _imagePath;
   bool get autoFaceEnabled => _autoFaceEnabled;
   List<ROI> get rois => List.unmodifiable(_rois);
+  String? get selectedRoiId => _selectedRoiId;
   EffectMode get effectMode => _effectMode;
   int get effectIntensity => _effectIntensity;
+  double get brightness => _brightness;
+  double get contrast => _contrast;
+  double get saturation => _saturation;
+  ColorPreset get colorPreset => _colorPreset;
+  
+  /// Obtiene la ROI activa (seleccionada) si existe
+  ROI? getActiveRoi() {
+    if (_selectedRoiId == null) return null;
+    try {
+      return _rois.firstWhere((roi) => roi.id == _selectedRoiId);
+    } catch (_) {
+      return null;
+    }
+  }
+  
+  /// Verifica si hay una ROI activa
+  bool hasActiveRoi() => getActiveRoi() != null;
 
   /// Carga una imagen desde un archivo
   Future<void> loadImage(String imagePath) async {
@@ -246,6 +282,65 @@ class EditorController {
   /// Establece la intensidad del efecto
   void setEffectIntensity(int intensity) {
     _effectIntensity = intensity.clamp(1, 10);
+  }
+  
+  /// Establece la ROI seleccionada (activa)
+  void setSelectedRoiId(String? roiId) {
+    if (roiId != null) {
+      // Verificar que la ROI existe
+      final exists = _rois.any((roi) => roi.id == roiId);
+      if (!exists) {
+        throw Exception('ROI no encontrada: $roiId');
+      }
+    }
+    _selectedRoiId = roiId;
+  }
+  
+  /// Establece el brillo (-100 a +100, 0 es neutral)
+  void setBrightness(double value) {
+    _brightness = value.clamp(-100.0, 100.0);
+  }
+  
+  /// Establece el contraste (-100 a +100, 0 es neutral)
+  void setContrast(double value) {
+    _contrast = value.clamp(-100.0, 100.0);
+  }
+  
+  /// Establece la saturación (-100 a +100, 0 es neutral)
+  void setSaturation(double value) {
+    _saturation = value.clamp(-100.0, 100.0);
+  }
+  
+  /// Establece el preset de color
+  void setColorPreset(ColorPreset preset) {
+    _colorPreset = preset;
+  }
+
+  /// Restaura el estado completo del editor (para undo/redo)
+  /// 
+  /// Este método permite restaurar un estado anterior guardado en el historial.
+  /// Úsese con precaución: solo para operaciones de undo/redo.
+  void restoreState({
+    required List<ROI> rois,
+    required bool autoFaceEnabled,
+    required EffectMode effectMode,
+    required int effectIntensity,
+    String? selectedRoiId,
+    double? brightness,
+    double? contrast,
+    double? saturation,
+    ColorPreset? colorPreset,
+  }) {
+    // Deep copy de la lista de ROIs para evitar mutaciones externas
+    _rois = rois.map((roi) => roi.copyWith()).toList();
+    _autoFaceEnabled = autoFaceEnabled;
+    _effectMode = effectMode;
+    _effectIntensity = effectIntensity.clamp(1, 10);
+    _selectedRoiId = selectedRoiId;
+    if (brightness != null) _brightness = brightness.clamp(-100.0, 100.0);
+    if (contrast != null) _contrast = contrast.clamp(-100.0, 100.0);
+    if (saturation != null) _saturation = saturation.clamp(-100.0, 100.0);
+    if (colorPreset != null) _colorPreset = colorPreset;
   }
 
   /// Obtiene los bytes de la imagen procesada con efectos aplicados en ROIs

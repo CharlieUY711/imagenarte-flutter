@@ -22,7 +22,7 @@ class BlurRegionOp {
 
     // Blur simple usando convolución
     final radius = intensity.clamp(1, 10);
-    final blurred = img.gaussianBlur(image, radius: radius);
+    final blurred = img.gaussianBlur(image, radius);
 
     final outputPath = '${imagePath}_blurred.jpg';
     await File(outputPath).writeAsBytes(img.encodeJpg(blurred));

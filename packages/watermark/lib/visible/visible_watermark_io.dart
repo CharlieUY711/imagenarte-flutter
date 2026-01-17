@@ -19,11 +19,11 @@ class VisibleWatermark {
     final fontSize = (image.width * 0.05).round().clamp(12, 48);
     img.drawString(
       image,
+      img.arial_24,
+      image.width - (text.length * fontSize ~/ 2) - 20,
+      image.height - fontSize - 20,
       text,
-      font: img.arial_24,
-      x: image.width - (text.length * fontSize ~/ 2) - 20,
-      y: image.height - fontSize - 20,
-      color: img.ColorRgb8(255, 255, 255),
+      color: 0xFFFFFFFF, // Blanco en formato ARGB
     );
 
     final outputPath = '${imagePath}_watermarked.jpg';
