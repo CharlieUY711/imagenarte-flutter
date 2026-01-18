@@ -20,7 +20,7 @@ class _EditorSidebarState extends State<EditorSidebar> {
         color: AppColors.background,
         border: Border(
           right: BorderSide(
-            color: AppColors.foreground.withOpacity(0.1),
+            color: AppColors.foreground.withAlpha(26),
             width: 1,
           ),
         ),
@@ -72,11 +72,19 @@ class _EditorSidebarState extends State<EditorSidebar> {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent.withOpacity(0.2)
+              ? AppColors.accent.withAlpha(51)
               : Colors.transparent,
+          border: isSelected
+              ? Border(
+                  left: BorderSide(
+                    color: AppColors.accent,
+                    width: 2,
+                  ),
+                )
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -85,8 +93,8 @@ class _EditorSidebarState extends State<EditorSidebar> {
               icon,
               color: isSelected
                   ? AppColors.accent
-                  : AppColors.foreground.withOpacity(0.7),
-              size: 24,
+                  : AppColors.foreground.withAlpha(179),
+              size: 20,
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -95,7 +103,7 @@ class _EditorSidebarState extends State<EditorSidebar> {
                 fontSize: 10,
                 color: isSelected
                     ? AppColors.accent
-                    : AppColors.foreground.withOpacity(0.7),
+                    : AppColors.foreground.withAlpha(179),
               ),
             ),
           ],

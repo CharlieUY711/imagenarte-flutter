@@ -8,12 +8,13 @@ class EditorBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 88,
+      height: 84,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(
           top: BorderSide(
-            color: AppColors.foreground.withOpacity(0.1),
+            color: AppColors.foreground.withAlpha(26),
             width: 1,
           ),
         ),
@@ -22,38 +23,48 @@ class EditorBottomBar extends StatelessWidget {
         children: [
           // Botón Undo (izquierda)
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: IconButton(
               onPressed: () {
                 // Placeholder: sin funcionalidad
               },
               icon: const Icon(Icons.undo),
               color: AppColors.foreground,
-              iconSize: 24,
+              iconSize: 22,
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
             ),
           ),
           // Área central: tool options placeholder
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
                 'Opciones',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.foreground,
+                  fontSize: 12,
+                  color: AppColors.foreground.withAlpha(128),
                 ),
               ),
             ),
           ),
           // Botón Save (derecha)
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: IconButton(
               onPressed: () {
                 // Placeholder: sin funcionalidad
               },
               icon: const Icon(Icons.save),
               color: AppColors.foreground,
-              iconSize: 24,
+              iconSize: 22,
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
             ),
           ),
         ],

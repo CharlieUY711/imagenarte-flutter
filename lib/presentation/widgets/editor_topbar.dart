@@ -7,12 +7,13 @@ class EditorTopbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
+      height: 52,
+      padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(
           bottom: BorderSide(
-            color: AppColors.foreground.withOpacity(0.1),
+            color: AppColors.foreground.withAlpha(26),
             width: 1,
           ),
         ),
@@ -26,6 +27,12 @@ class EditorTopbar extends StatelessWidget {
             },
             icon: const Icon(Icons.arrow_back),
             color: AppColors.foreground,
+            iconSize: 20,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
           ),
           // Título centrado
           const Expanded(
@@ -33,7 +40,7 @@ class EditorTopbar extends StatelessWidget {
               'Editor',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppColors.foreground,
               ),
@@ -46,6 +53,12 @@ class EditorTopbar extends StatelessWidget {
             },
             icon: const Icon(Icons.settings),
             color: AppColors.foreground,
+            iconSize: 20,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
           ),
           IconButton(
             onPressed: () {
@@ -53,6 +66,12 @@ class EditorTopbar extends StatelessWidget {
             },
             icon: const Icon(Icons.help_outline),
             color: AppColors.foreground,
+            iconSize: 20,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
           ),
         ],
       ),

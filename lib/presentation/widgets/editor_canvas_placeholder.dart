@@ -9,11 +9,16 @@ class EditorCanvasPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
+      margin: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withAlpha(128),
         border: Border.all(
-          color: AppColors.foreground.withOpacity(0.2),
+          color: AppColors.foreground.withAlpha(51),
           width: 1,
         ),
         borderRadius: const BorderRadius.all(AppRadius.md),
