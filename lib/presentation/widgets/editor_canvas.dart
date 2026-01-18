@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
 import 'package:imagenarte/app/theme/app_spacing.dart';
@@ -24,32 +25,98 @@ class EditorCanvas extends StatefulWidget {
 
 class _EditorCanvasState extends State<EditorCanvas> {
   final GlobalKey _canvasKey = GlobalKey();
-  Path? _currentFreeSelectionPath;
-  Offset? _lastFreeSelectionPoint;
+  Size? _actualImageSize;
+  Rect? _imageDestRect;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImageSize();
+  }
+
+  @override
+  void didUpdateWidget(EditorCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePath != widget.imagePath) {
+      _loadImageSize();
+    }
+  }
+
+  Future<void> _loadImageSize() async {
+    if (widget.imagePath == null) {
+      setState(() {
+        _actualImageSize = null;
+        _imageDestRect = null;
+      });
+      return;
+    }
+
+    try {
+      final file = File(widget.imagePath!);
+      final imageBytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(imageBytes);
+      final frame = await codec.getNextFrame();
+      if (mounted) {
+        setState(() {
+          _actualImageSize = Size(frame.image.width.toDouble(), frame.image.height.toDouble());
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _actualImageSize = null;
+          _imageDestRect = null;
+        });
+      }
+    }
+  }
+
+  Rect? _calculateImageDestRect(Size canvasSize, Size? imageSize) {
+    if (imageSize == null || imageSize.width <= 0 || imageSize.height <= 0) {
+      return null;
+    }
+
+    final imageAspect = imageSize.width / imageSize.height;
+    final canvasAspect = canvasSize.width / canvasSize.height;
+
+    double width, height;
+    if (imageAspect > canvasAspect) {
+      width = canvasSize.width;
+      height = width / imageAspect;
+    } else {
+      height = canvasSize.height;
+      width = height * imageAspect;
+    }
+
+    final left = (canvasSize.width - width) / 2;
+    final top = (canvasSize.height - height) / 2;
+
+    return Rect.fromLTWH(left, top, width, height);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<EditorUiState>(
       builder: (context, uiState, child) {
         debugPrint("canvas sees ctx=${uiState.activeContext} stateHash=${identityHashCode(uiState)}");
-        // Barra negra eliminada - no mostrar hint
-        final showHint = false;
         final isWatermark = uiState.activeTool == EditorTool.watermark;
         final isGeometricSelection = uiState.activeTool == EditorTool.geometricSelection;
         final isFreeSelection = uiState.activeTool == EditorTool.freeSelection;
         final showSelectionOverlay = (isGeometricSelection || isFreeSelection) &&
-            (uiState.selectionGeometry != null || uiState.freeSelectionPath != null);
+            (uiState.selectionGeometry != null || uiState.freehandPathCanvas != null);
 
         return LayoutBuilder(
           key: _canvasKey,
           builder: (context, constraints) {
-            // Obtener tamaño de imagen si está disponible
-            Size? imageSize;
-            if (widget.imagePath != null) {
-              // Por ahora usamos el tamaño del canvas como aproximación
-              // En producción deberíamos obtener el tamaño real de la imagen
-              imageSize = constraints.biggest;
-            }
+            // Actualizar tamaño del canvas en el estado para mapeo
+            uiState.setCanvasSize(constraints.biggest);
+            
+            // Calcular destRect de la imagen
+            final canvasSize = constraints.biggest;
+            _imageDestRect = _calculateImageDestRect(canvasSize, _actualImageSize);
+            
+            // Obtener tamaño de imagen
+            final imageSize = _actualImageSize;
 
             // Inicializar watermark si es necesario
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,23 +135,26 @@ class _EditorCanvasState extends State<EditorCanvas> {
             });
 
             return GestureDetector(
-              onTapDown: (details) {
-                if (isWatermark) {
-                  _handleWatermarkTap(details, uiState);
-                } else if (isFreeSelection) {
-                  _startFreeSelection(details.localPosition, uiState);
-                }
-              },
+              onPanStart: isFreeSelection
+                  ? (details) {
+                      _handleFreehandPanStart(details.localPosition, uiState);
+                    }
+                  : null,
               onPanUpdate: isFreeSelection
                   ? (details) {
-                      _updateFreeSelection(details.localPosition, uiState);
+                      _handleFreehandPanUpdate(details.localPosition, uiState);
                     }
                   : null,
               onPanEnd: isFreeSelection
                   ? (details) {
-                      _endFreeSelection(uiState);
+                      _handleFreehandPanEnd(uiState, canvasSize, imageSize);
                     }
                   : null,
+              onTapDown: (details) {
+                if (isWatermark) {
+                  _handleWatermarkTap(details, uiState);
+                }
+              },
               child: Stack(
             children: [
               // Imagen central
@@ -108,9 +178,9 @@ class _EditorCanvasState extends State<EditorCanvas> {
               // Overlay de selección (dim fuera, normal dentro)
               if (showSelectionOverlay)
                 _buildSelectionOverlay(uiState, constraints.biggest),
-              // Overlay de selección libre
-              if (isFreeSelection && _currentFreeSelectionPath != null)
-                _buildFreeSelectionOverlay(constraints.biggest),
+              // Overlay de selección libre en tiempo real (durante dibujo)
+              if (isFreeSelection && uiState.isDrawingFreehand && uiState.freehandPointsCanvas.isNotEmpty)
+                _buildFreehandDrawingOverlay(uiState, constraints.biggest),
               // Renderizar watermark (stub visual)
               if (isWatermark && uiState.watermarkVisible && uiState.watermarkGeometry != null)
                 _buildWatermarkPlaceholder(uiState),
@@ -127,42 +197,29 @@ class _EditorCanvasState extends State<EditorCanvas> {
     );
   }
 
-  void _startFreeSelection(Offset position, EditorUiState uiState) {
-    setState(() {
-      _currentFreeSelectionPath = Path()..moveTo(position.dx, position.dy);
-      _lastFreeSelectionPoint = position;
-    });
+  void _handleFreehandPanStart(Offset position, EditorUiState uiState) {
+    uiState.startFreehand();
+    uiState.addFreehandPoint(position, _imageDestRect);
   }
 
-  void _updateFreeSelection(Offset position, EditorUiState uiState) {
-    if (_currentFreeSelectionPath == null || _lastFreeSelectionPoint == null) return;
-    
-    setState(() {
-      _currentFreeSelectionPath!.lineTo(position.dx, position.dy);
-      _lastFreeSelectionPoint = position;
-    });
+  void _handleFreehandPanUpdate(Offset position, EditorUiState uiState) {
+    uiState.addFreehandPoint(position, _imageDestRect);
   }
 
-  void _endFreeSelection(EditorUiState uiState) {
-    if (_currentFreeSelectionPath != null) {
-      // Cerrar el path si es necesario
-      if (_lastFreeSelectionPoint != null) {
-        _currentFreeSelectionPath!.lineTo(_lastFreeSelectionPoint!.dx, _lastFreeSelectionPoint!.dy);
-      }
-      uiState.setFreeSelectionPath(_currentFreeSelectionPath);
-    }
-    setState(() {
-      _currentFreeSelectionPath = null;
-      _lastFreeSelectionPoint = null;
-    });
+  void _handleFreehandPanEnd(EditorUiState uiState, Size canvasSize, Size? imageSize) {
+    uiState.endFreehand(
+      canvasSize: canvasSize,
+      imageSize: imageSize,
+    );
   }
 
-  Widget _buildFreeSelectionOverlay(Size canvasSize) {
-    if (_currentFreeSelectionPath == null) return const SizedBox.shrink();
+  Widget _buildFreehandDrawingOverlay(EditorUiState uiState, Size canvasSize) {
+    final points = uiState.freehandPointsCanvas;
+    if (points.isEmpty) return const SizedBox.shrink();
     
     return CustomPaint(
-      painter: _FreeSelectionOverlayPainter(
-        path: _currentFreeSelectionPath!,
+      painter: _FreehandDrawingPainter(
+        points: points,
         canvasSize: canvasSize,
       ),
       child: const SizedBox.expand(),
@@ -226,11 +283,12 @@ class _EditorCanvasState extends State<EditorCanvas> {
 
   Widget _buildSelectionOverlay(EditorUiState uiState, Size canvasSize) {
     // Si hay path de selección libre, usar ese
-    if (uiState.freeSelectionPath != null) {
+    if (uiState.freehandPathCanvas != null) {
       return CustomPaint(
         painter: _FreeSelectionOverlayPainter(
-          path: uiState.freeSelectionPath!,
+          path: uiState.freehandPathCanvas!,
           canvasSize: canvasSize,
+          inverted: uiState.selectionInverted,
         ),
         child: const SizedBox.expand(),
       );
@@ -242,6 +300,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
         painter: _SelectionOverlayPainter(
           geometry: uiState.selectionGeometry!,
           canvasSize: canvasSize,
+          inverted: uiState.selectionInverted,
         ),
         child: const SizedBox.expand(),
       );
@@ -254,10 +313,12 @@ class _EditorCanvasState extends State<EditorCanvas> {
 class _SelectionOverlayPainter extends CustomPainter {
   final TransformableGeometry geometry;
   final Size canvasSize;
+  final bool inverted;
 
   _SelectionOverlayPainter({
     required this.geometry,
     required this.canvasSize,
+    required this.inverted,
   });
 
   @override
@@ -266,46 +327,94 @@ class _SelectionOverlayPainter extends CustomPainter {
     final overlayPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height));
 
-    // Crear path para el "hole" (selección)
-    Path holePath;
+    // Crear path para la selección
+    Path selectionPath;
     if (geometry.shape == TransformableShape.circle) {
       final radius = math.min(geometry.size.width, geometry.size.height) / 2;
-      holePath = Path()
+      selectionPath = Path()
         ..addOval(Rect.fromCircle(center: geometry.center, radius: radius));
     } else {
       // Rectángulo
-      holePath = Path()
+      selectionPath = Path()
         ..addRect(geometry.boundingBox);
     }
-
-    // Combinar: overlay - hole (difference)
-    final combinedPath = Path.combine(
-      PathOperation.difference,
-      overlayPath,
-      holePath,
-    );
 
     // Dibujar overlay oscuro
     final paint = Paint()
       ..color = AppColors.background.withAlpha(200)
       ..style = PaintingStyle.fill;
-    canvas.drawPath(combinedPath, paint);
+
+    if (inverted) {
+      // Invertido: sombrear solo el área de selección
+      canvas.drawPath(selectionPath, paint);
+    } else {
+      // Normal: sombrear todo excepto el área de selección
+      final combinedPath = Path.combine(
+        PathOperation.difference,
+        overlayPath,
+        selectionPath,
+      );
+      canvas.drawPath(combinedPath, paint);
+    }
   }
 
   @override
   bool shouldRepaint(_SelectionOverlayPainter oldDelegate) {
     return geometry != oldDelegate.geometry ||
-        canvasSize != oldDelegate.canvasSize;
+        canvasSize != oldDelegate.canvasSize ||
+        inverted != oldDelegate.inverted;
+  }
+}
+
+class _FreehandDrawingPainter extends CustomPainter {
+  final List<Offset> points;
+  final Size canvasSize;
+
+  _FreehandDrawingPainter({
+    required this.points,
+    required this.canvasSize,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2) return;
+    
+    // Crear path desde los puntos
+    final path = Path();
+    path.moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    
+    // Dibujar trazo naranja semi-transparente
+    final strokePaint = Paint()
+      ..color = AppColors.accent.withOpacity(0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
+    
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(_FreehandDrawingPainter oldDelegate) {
+    return points.length != oldDelegate.points.length ||
+        (points.isNotEmpty && oldDelegate.points.isNotEmpty && 
+         points.last != oldDelegate.points.last);
   }
 }
 
 class _FreeSelectionOverlayPainter extends CustomPainter {
   final Path path;
   final Size canvasSize;
+  final bool inverted;
 
   _FreeSelectionOverlayPainter({
     required this.path,
     required this.canvasSize,
+    required this.inverted,
   });
 
   @override
@@ -314,30 +423,29 @@ class _FreeSelectionOverlayPainter extends CustomPainter {
     final overlayPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height));
 
-    // Combinar: overlay - hole (difference)
-    final combinedPath = Path.combine(
-      PathOperation.difference,
-      overlayPath,
-      path,
-    );
-
     // Dibujar overlay oscuro
     final paint = Paint()
       ..color = AppColors.background.withAlpha(200)
       ..style = PaintingStyle.fill;
-    canvas.drawPath(combinedPath, paint);
-    
-    // Dibujar borde de la selección
-    final borderPaint = Paint()
-      ..color = AppColors.accent
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawPath(path, borderPaint);
+
+    if (inverted) {
+      // Invertido: sombrear solo el área de selección
+      canvas.drawPath(path, paint);
+    } else {
+      // Normal: sombrear todo excepto el área de selección
+      final combinedPath = Path.combine(
+        PathOperation.difference,
+        overlayPath,
+        path,
+      );
+      canvas.drawPath(combinedPath, paint);
+    }
   }
 
   @override
   bool shouldRepaint(_FreeSelectionOverlayPainter oldDelegate) {
     return path != oldDelegate.path ||
-        canvasSize != oldDelegate.canvasSize;
+        canvasSize != oldDelegate.canvasSize ||
+        inverted != oldDelegate.inverted;
   }
 }

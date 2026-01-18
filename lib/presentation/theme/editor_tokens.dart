@@ -35,14 +35,12 @@ class EditorTokens {
   static const double kBarHeight = 25.0;
 
   /// Ancho fijo del slot izquierdo para alineación perfecta entre barras
-  /// Contiene: padding izquierdo (16dp) + ícono (18dp) = 34dp
-  /// El texto debe empezar exactamente después de este slot
-  static const double kLeftIconSlotW = kContentHPad + kIconSize;
+  /// Contiene: back arrow (top orange) == "Selección:" text start (white) == home icon (toolbar)
+  static const double kLeftIconSlotW = 40.0;
 
   /// Ancho fijo del slot derecho para alineación perfecta entre barras
-  /// Contiene: ícono (18dp) + padding derecho (16dp) = 34dp
-  /// El texto debe terminar exactamente antes de este slot
-  static const double kRightIconSlotW = kIconSize + kContentHPad;
+  /// Contiene: "MB" (top) == "~MB" (white) == save disk icon (toolbar)
+  static const double kRightIconSlotW = 40.0;
 
   /// Tamaño de los iconos en las barras
   static const double kIconSize = 18.0;

@@ -1,6 +1,20 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:imagenarte/domain/transformable_geometry.dart';
+
+/// Clase auxiliar para retornar el path procesado de selección libre
+class _ProcessedFreehandPath {
+  final Path pathCanvas;
+  final Path pathImage;
+  final Rect boundsImage;
+  
+  _ProcessedFreehandPath({
+    required this.pathCanvas,
+    required this.pathImage,
+    required this.boundsImage,
+  });
+}
 
 enum EditorTool {
   none,
@@ -48,6 +62,11 @@ enum TransformTarget {
   selection, // ROI/Selección
   watermarkText, // Marca de agua de texto
   watermarkLogo, // Marca de agua de logo
+}
+
+enum SelectionMode {
+  geometric,
+  freehand,
 }
 
 /// Contexto activo único del editor
@@ -104,8 +123,26 @@ class EditorUiState extends ChangeNotifier {
   // Geometría de selección (ROI)
   TransformableGeometry? _selectionGeometry;
   
+  // Modo de selección
+  SelectionMode _selectionMode = SelectionMode.geometric;
+  
   // Path para selección libre (mano alzada)
   Path? _freeSelectionPath;
+  
+  // Puntos en tiempo real durante el dibujo (coordenadas canvas)
+  List<Offset> _freehandPointsCanvas = [];
+  
+  // Path final en coordenadas canvas (después de simplificación y suavizado)
+  Path? _freehandPathCanvas;
+  
+  // Path final en coordenadas de imagen (pixels)
+  Path? _freehandPathImage;
+  
+  // Bounding box del path en coordenadas de imagen (para métricas)
+  Rect? _freehandBoundsImagePx;
+  
+  // Estado de dibujo activo
+  bool _isDrawingFreehand = false;
   
   // Geometría de watermark (stub por ahora)
   TransformableGeometry? _watermarkGeometry;
@@ -127,6 +164,9 @@ class EditorUiState extends ChangeNotifier {
   double _pixelateIntensity = 50.0; // 0-100
   double _watermarkOpacity = 100.0; // 0-100
 
+  // Estado de inversión de selección para tijera
+  bool _selectionInverted = false; // false = interior, true = exterior
+
   // Nombre de versión de selección (editable)
   String? _selectionVersionBaseName;
   String? _originalFileExtension; // Extensión del archivo original (fija)
@@ -139,6 +179,17 @@ class EditorUiState extends ChangeNotifier {
   String? _structuredInfoText; // Ej: "Selección: ... · 185×329 px · ~0.10 MB"
   String? _supportMessageText; // Ej: "Selecciona una herramienta para comenzar"
 
+  // Métricas aproximadas (TRACK B)
+  int _approxWidthPx = 0;
+  int _approxHeightPx = 0;
+  int _approxBytes = 0;
+  String? _approxLabelLeft; // Ej: "Selección: ..." o "Color: Sepia"
+  Size? _canvasSize; // Tamaño del canvas para mapeo
+  
+  // Timer para throttle de selección
+  Timer? _selectionThrottleTimer;
+  static const Duration _selectionThrottleDelay = Duration(milliseconds: 50);
+
   // Undo stack con capacidad de 10
   final List<EditorSnapshot> _undoStack = [];
   static const int _maxUndoLevels = 10;
@@ -150,6 +201,12 @@ class EditorUiState extends ChangeNotifier {
   TransformTarget get activeTransformTarget => _activeTransformTarget;
   TransformableGeometry? get selectionGeometry => _selectionGeometry;
   Path? get freeSelectionPath => _freeSelectionPath;
+  SelectionMode get selectionMode => _selectionMode;
+  List<Offset> get freehandPointsCanvas => List.unmodifiable(_freehandPointsCanvas);
+  Path? get freehandPathCanvas => _freehandPathCanvas;
+  Path? get freehandPathImage => _freehandPathImage;
+  Rect? get freehandBoundsImagePx => _freehandBoundsImagePx;
+  bool get isDrawingFreehand => _isDrawingFreehand;
   TransformableGeometry? get watermarkGeometry => _watermarkGeometry;
   bool get watermarkVisible => _watermarkVisible;
   bool get watermarkIsText => _watermarkIsText;
@@ -163,7 +220,10 @@ class EditorUiState extends ChangeNotifier {
   double get pixelateIntensity => _pixelateIntensity;
   double get watermarkOpacity => _watermarkOpacity;
   bool get canUndo => _undoStack.isNotEmpty;
-  bool get hasValidSelection => _selectionGeometry != null || _freeSelectionPath != null;
+  bool get hasValidSelection => _selectionGeometry != null || 
+      _freeSelectionPath != null || 
+      _freehandPathCanvas != null;
+  bool get selectionInverted => _selectionInverted;
   String? get selectionVersionBaseName => _selectionVersionBaseName;
   String? get originalFileExtension => _originalFileExtension;
   String? get selectionVersionFullName {
@@ -176,6 +236,13 @@ class EditorUiState extends ChangeNotifier {
   WhiteBarMode get whiteBarMode => _whiteBarMode;
   String? get structuredInfoText => _structuredInfoText;
   String? get supportMessageText => _supportMessageText;
+  
+  // Getters para métricas aproximadas
+  int get approxWidthPx => _approxWidthPx;
+  int get approxHeightPx => _approxHeightPx;
+  int get approxBytes => _approxBytes;
+  String? get approxLabelLeft => _approxLabelLeft;
+  Size? get canvasSize => _canvasSize;
 
   /// Establece el contexto activo único
   /// REEMPLAZA cualquier contexto anterior (limpia overlays previos)
@@ -240,6 +307,7 @@ class EditorUiState extends ChangeNotifier {
         setContext(EditorContext.freeSelection);
         break;
       case EditorTool.scissors:
+        // La tijera muestra overlay para elegir Interior/Exterior
         setContext(EditorContext.scissors);
         break;
       case EditorTool.color:
@@ -272,6 +340,11 @@ class EditorUiState extends ChangeNotifier {
     } else if (tool == EditorTool.freeSelection) {
       // Selección libre: limpiar path anterior si existe
       _freeSelectionPath = null;
+      _freehandPathCanvas = null;
+      _freehandPathImage = null;
+      _freehandPointsCanvas.clear();
+      _freehandBoundsImagePx = null;
+      _selectionMode = SelectionMode.freehand;
       _activeTransformTarget = TransformTarget.none;
     } else if (tool == EditorTool.color || tool == EditorTool.classicAdjustments) {
       // Color y ajustes no usan transform target
@@ -333,6 +406,11 @@ class EditorUiState extends ChangeNotifier {
         break;
       case EditorTool.freeSelection:
         _freeSelectionPath = null;
+        _freehandPathCanvas = null;
+        _freehandPathImage = null;
+        _freehandPointsCanvas.clear();
+        _freehandBoundsImagePx = null;
+        _selectionMode = SelectionMode.geometric;
         break;
       case EditorTool.color:
         _colorMode = ColorMode.color;
@@ -488,6 +566,7 @@ class EditorUiState extends ChangeNotifier {
   void updateSelectionGeometry(TransformableGeometry geometry) {
     _selectionGeometry = geometry;
     notifyListeners();
+    // El recálculo de métricas se dispara desde la UI cuando detecta el cambio
   }
 
   void setFreeSelectionPath(Path? path) {
@@ -495,9 +574,267 @@ class EditorUiState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Inicia el dibujo de selección libre
+  void startFreehand() {
+    _isDrawingFreehand = true;
+    _freehandPointsCanvas.clear();
+    notifyListeners();
+  }
+
+  /// Agrega un punto durante el dibujo (solo si está dentro del área de la imagen)
+  void addFreehandPoint(Offset canvasPoint, Rect? imageDestRect) {
+    if (!_isDrawingFreehand) return;
+    
+    // Solo agregar si está dentro del área de la imagen
+    if (imageDestRect != null && !imageDestRect.contains(canvasPoint)) {
+      return;
+    }
+    
+    // Aplicar distance threshold (2-3 px) para no guardar demasiados puntos
+    if (_freehandPointsCanvas.isNotEmpty) {
+      final lastPoint = _freehandPointsCanvas.last;
+      final distance = (canvasPoint - lastPoint).distance;
+      if (distance < 2.5) {
+        return; // Ignorar puntos muy cercanos
+      }
+    }
+    
+    _freehandPointsCanvas.add(canvasPoint);
+    notifyListeners();
+  }
+
+  /// Finaliza el dibujo y procesa el path (simplificación, suavizado, cierre)
+  void endFreehand({
+    required Size? canvasSize,
+    required Size? imageSize,
+  }) {
+    if (!_isDrawingFreehand || _freehandPointsCanvas.length < 3) {
+      _isDrawingFreehand = false;
+      _freehandPointsCanvas.clear();
+      notifyListeners();
+      return;
+    }
+    
+    // Importar helper de simplificación y suavizado
+    // (se implementará en un archivo separado)
+    final processedPath = _processFreehandPath(
+      points: _freehandPointsCanvas,
+      canvasSize: canvasSize,
+      imageSize: imageSize,
+    );
+    
+    if (processedPath != null) {
+      _freehandPathCanvas = processedPath.pathCanvas;
+      _freehandPathImage = processedPath.pathImage;
+      _freehandBoundsImagePx = processedPath.boundsImage;
+      _freeSelectionPath = _freehandPathCanvas; // Compatibilidad con código existente
+    }
+    
+    _isDrawingFreehand = false;
+    _freehandPointsCanvas.clear();
+    notifyListeners();
+  }
+
+  /// Limpia la selección libre
+  void clearFreehand() {
+    _freeSelectionPath = null;
+    _freehandPathCanvas = null;
+    _freehandPathImage = null;
+    _freehandPointsCanvas.clear();
+    _freehandBoundsImagePx = null;
+    _isDrawingFreehand = false;
+    _selectionMode = SelectionMode.geometric;
+    notifyListeners();
+  }
+
+  /// Procesa el path: simplificación RDP, suavizado, cierre y conversión a coordenadas de imagen
+  _ProcessedFreehandPath? _processFreehandPath({
+    required List<Offset> points,
+    required Size? canvasSize,
+    required Size? imageSize,
+  }) {
+    if (points.length < 3 || canvasSize == null || imageSize == null) {
+      return null;
+    }
+    
+    // 1. Simplificar con RDP (tolerancia 2-3 px en canvas)
+    final simplified = _rdpSimplify(points, tolerance: 2.5);
+    
+    if (simplified.length < 3) {
+      return null;
+    }
+    
+    // 2. Cerrar el path si es necesario
+    final firstPoint = simplified.first;
+    final lastPoint = simplified.last;
+    final closeDistance = (lastPoint - firstPoint).distance;
+    final shouldClose = closeDistance < 12.0; // Umbral de 12 px
+    
+    // 3. Convertir puntos a coordenadas de imagen ANTES de suavizar
+    final imageDestRect = _calculateImageRectInCanvas(canvasSize, imageSize);
+    final scaleX = imageSize.width / imageDestRect.width;
+    final scaleY = imageSize.height / imageDestRect.height;
+    
+    final imagePoints = simplified.map((point) {
+      return Offset(
+        ((point.dx - imageDestRect.left) * scaleX).clamp(0.0, imageSize.width),
+        ((point.dy - imageDestRect.top) * scaleY).clamp(0.0, imageSize.height),
+      );
+    }).toList();
+    
+    // 4. Suavizar en coordenadas canvas
+    final smoothedPathCanvas = _smoothPath(simplified, shouldClose: shouldClose);
+    
+    // 5. Suavizar en coordenadas imagen
+    final smoothedPathImage = _smoothPath(imagePoints, shouldClose: shouldClose);
+    
+    // 6. Calcular bounding box en coordenadas de imagen
+    final boundsImage = _calculatePathBounds(smoothedPathImage);
+    
+    return _ProcessedFreehandPath(
+      pathCanvas: smoothedPathCanvas,
+      pathImage: smoothedPathImage,
+      boundsImage: boundsImage,
+    );
+  }
+
+  /// Simplificación Ramer-Douglas-Peucker
+  List<Offset> _rdpSimplify(List<Offset> points, {required double tolerance}) {
+    if (points.length <= 2) return points;
+    
+    // Encontrar el punto más lejano de la línea entre el primero y el último
+    double maxDistance = 0.0;
+    int maxIndex = 0;
+    
+    final first = points.first;
+    final last = points.last;
+    final lineVector = last - first;
+    final lineLength = lineVector.distance;
+    
+    if (lineLength < tolerance) {
+      // Si la línea es muy corta, retornar solo los extremos
+      return [first, last];
+    }
+    
+    for (int i = 1; i < points.length - 1; i++) {
+      final point = points[i];
+      final toPoint = point - first;
+      final projectionLength = (toPoint.dx * lineVector.dx + toPoint.dy * lineVector.dy) / lineLength;
+      final projection = Offset(
+        first.dx + (lineVector.dx / lineLength) * projectionLength,
+        first.dy + (lineVector.dy / lineLength) * projectionLength,
+      );
+      final distance = (point - projection).distance;
+      
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        maxIndex = i;
+      }
+    }
+    
+    // Si la distancia máxima es menor que la tolerancia, retornar solo los extremos
+    if (maxDistance < tolerance) {
+      return [first, last];
+    }
+    
+    // Recursión: simplificar ambas partes
+    final left = _rdpSimplify(points.sublist(0, maxIndex + 1), tolerance: tolerance);
+    final right = _rdpSimplify(points.sublist(maxIndex), tolerance: tolerance);
+    
+    // Combinar resultados (evitar duplicar el punto de unión)
+    return [...left, ...right.sublist(1)];
+  }
+
+  /// Suaviza el path usando quadratic bezier
+  Path _smoothPath(List<Offset> points, {required bool shouldClose}) {
+    if (points.length < 2) {
+      return Path();
+    }
+    
+    final path = Path();
+    path.moveTo(points.first.dx, points.first.dy);
+    
+    if (points.length == 2) {
+      path.lineTo(points.last.dx, points.last.dy);
+      if (shouldClose) {
+        path.close();
+      }
+      return path;
+    }
+    
+    // Usar quadratic bezier para suavizado
+    for (int i = 1; i < points.length; i++) {
+      final prev = points[i - 1];
+      final curr = points[i];
+      
+      // Punto de control en el medio entre prev y curr
+      final controlPoint = Offset(
+        (prev.dx + curr.dx) / 2,
+        (prev.dy + curr.dy) / 2,
+      );
+      
+      path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, curr.dx, curr.dy);
+    }
+    
+    if (shouldClose) {
+      path.close();
+    }
+    
+    return path;
+  }
+
+
+  /// Calcula el bounding box de un path en coordenadas de imagen
+  Rect _calculatePathBounds(Path path) {
+    try {
+      final bounds = path.getBounds();
+      return bounds;
+    } catch (e) {
+      return Rect.zero;
+    }
+  }
+
+  /// Calcula el área de un path usando la fórmula shoelace
+  double _calculatePathArea(Path path) {
+    try {
+      // Extraer puntos del path
+      final points = <Offset>[];
+      final metrics = path.computeMetrics();
+      
+      for (final metric in metrics) {
+        const sampleStep = 10.0; // Muestrear cada 10 px
+        final length = metric.length;
+        
+        for (double offset = 0; offset <= length; offset += sampleStep) {
+          final tangent = metric.getTangentForOffset(offset.clamp(0.0, length));
+          if (tangent != null) {
+            points.add(tangent.position);
+          }
+        }
+      }
+      
+      if (points.length < 3) {
+        return 0.0;
+      }
+      
+      // Shoelace formula
+      double area = 0.0;
+      for (int i = 0; i < points.length; i++) {
+        final j = (i + 1) % points.length;
+        area += points[i].dx * points[j].dy;
+        area -= points[j].dx * points[i].dy;
+      }
+      
+      return (area.abs() / 2.0);
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
   void setColorMode(ColorMode mode) {
     _colorMode = mode;
     notifyListeners();
+    // El recálculo de métricas se dispara desde la UI cuando detecta el cambio
   }
 
   void setWatermarkVisible(bool visible) {
@@ -705,5 +1042,330 @@ class EditorUiState extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  /// Invierte el estado de selección (interior/exterior)
+  void toggleSelectionInverted() {
+    _selectionInverted = !_selectionInverted;
+    notifyListeners();
+  }
+
+  /// Actualiza métricas aproximadas para selección
+  /// 
+  /// Calcula WxH px y ~MB de forma aproximada y rápida.
+  /// Usa throttle de 50ms para evitar actualizaciones excesivas durante drag/resize.
+  void updateSelectionApproxMetrics({
+    required int? imgW,
+    required int? imgH,
+    required int? originalBytes,
+    required String? extensionLower,
+    required Size? canvasSize,
+  }) {
+    // Cancelar timer anterior
+    _selectionThrottleTimer?.cancel();
+    
+    // Si no hay datos necesarios, limpiar métricas
+    if (imgW == null || imgH == null || originalBytes == null || 
+        extensionLower == null || canvasSize == null) {
+      _approxWidthPx = 0;
+      _approxHeightPx = 0;
+      _approxBytes = 0;
+      _approxLabelLeft = null;
+      notifyListeners();
+      return;
+    }
+    
+    // Verificar si hay selección válida
+    final hasSelection = _selectionGeometry != null || _freehandPathImage != null;
+    if (!hasSelection) {
+      _approxWidthPx = 0;
+      _approxHeightPx = 0;
+      _approxBytes = 0;
+      _approxLabelLeft = null;
+      notifyListeners();
+      return;
+    }
+
+    // Programar con throttle
+    final imgWValue = imgW;
+    final imgHValue = imgH;
+    final originalBytesValue = originalBytes;
+    final extensionLowerValue = extensionLower;
+    final canvasSizeValue = canvasSize;
+    
+    _selectionThrottleTimer = Timer(_selectionThrottleDelay, () {
+      _performSelectionApproxMetrics(
+        imgW: imgWValue,
+        imgH: imgHValue,
+        originalBytes: originalBytesValue,
+        extensionLower: extensionLowerValue,
+        canvasSize: canvasSizeValue,
+      );
+    });
+  }
+
+  /// Realiza el cálculo aproximado de métricas para selección
+  void _performSelectionApproxMetrics({
+    required int imgW,
+    required int imgH,
+    required int originalBytes,
+    required String extensionLower,
+    required Size canvasSize,
+  }) {
+    // Verificar si es selección libre o geométrica
+    if (_freehandPathImage != null && _freehandBoundsImagePx != null) {
+      // Selección libre
+      final bounds = _freehandBoundsImagePx!;
+      
+      int outW, outH;
+      double selectionArea;
+      
+      if (_selectionInverted) {
+        // Exterior: mantener toda la imagen
+        outW = imgW;
+        outH = imgH;
+        selectionArea = imgW * imgH.toDouble();
+      } else {
+        // Interior: usar bounding box del path
+        outW = bounds.width.toInt().clamp(0, imgW);
+        outH = bounds.height.toInt().clamp(0, imgH);
+        
+        // Calcular área aproximada usando shoelace formula
+        selectionArea = _calculatePathArea(_freehandPathImage!);
+        if (selectionArea <= 0) {
+          // Fallback: usar área del bounding box con factor 0.85
+          selectionArea = bounds.width * bounds.height * 0.85;
+        }
+      }
+      
+      // Calcular ~MB aproximado
+      final imageArea = imgW * imgH.toDouble();
+      final pixelRatio = imageArea > 0 ? selectionArea / imageArea : 0.0;
+      
+      // formatFactor según extensión
+      double formatFactor = 1.0;
+      if (extensionLower == '.png') {
+        formatFactor = 1.05;
+      } else if (extensionLower == '.jpg' || extensionLower == '.jpeg') {
+        formatFactor = 0.95;
+      }
+      
+      final estimatedBytes = math.max(8192, (originalBytes * pixelRatio * formatFactor).toInt());
+      
+      // Actualizar estado
+      _approxWidthPx = outW;
+      _approxHeightPx = outH;
+      _approxBytes = estimatedBytes;
+      
+      final baseName = _selectionVersionBaseName ?? 'imagen';
+      _approxLabelLeft = 'Selección: $baseName$extensionLower';
+      
+      notifyListeners();
+      return;
+    }
+    
+    if (_selectionGeometry == null) {
+      _approxWidthPx = 0;
+      _approxHeightPx = 0;
+      _approxBytes = 0;
+      _approxLabelLeft = null;
+      notifyListeners();
+      return;
+    }
+
+    final geometry = _selectionGeometry!;
+    
+    // Mapear geometría del canvas a coordenadas de imagen usando BoxFit.contain
+    final imageSize = Size(imgW.toDouble(), imgH.toDouble());
+    final imageRect = _calculateImageRectInCanvas(canvasSize, imageSize);
+    
+    // Calcular escala y offset
+    final scaleX = imgW / imageRect.width;
+    final scaleY = imgH / imageRect.height;
+    
+    // Mapear coordenadas del canvas a coordenadas relativas a imageRect
+    final relativeCenter = Offset(
+      geometry.center.dx - imageRect.left,
+      geometry.center.dy - imageRect.top,
+    );
+    
+    // Escalar a coordenadas de imagen
+    final scaledCenter = Offset(
+      relativeCenter.dx * scaleX,
+      relativeCenter.dy * scaleY,
+    );
+    final scaledSize = Size(
+      geometry.size.width * scaleX,
+      geometry.size.height * scaleY,
+    );
+    
+    final scaledGeometry = TransformableGeometry(
+      shape: geometry.shape,
+      center: scaledCenter,
+      size: scaledSize,
+      rotation: geometry.rotation,
+    );
+    
+    final rectInImage = scaledGeometry.boundingBox;
+    final rectClamped = Rect.fromLTWH(
+      rectInImage.left.clamp(0.0, imgW.toDouble()),
+      rectInImage.top.clamp(0.0, imgH.toDouble()),
+      rectInImage.width.clamp(0.0, (imgW - rectInImage.left).clamp(0.0, imgW.toDouble())),
+      rectInImage.height.clamp(0.0, (imgH - rectInImage.top).clamp(0.0, imgH.toDouble())),
+    );
+
+    // Calcular WxH px
+    int outW, outH;
+    double selectionArea;
+    
+    if (_selectionInverted) {
+      // Exterior: mantener toda la imagen
+      outW = imgW;
+      outH = imgH;
+      selectionArea = imgW * imgH.toDouble();
+    } else {
+      // Interior: recortar a la selección
+      if (geometry.shape == TransformableShape.circle) {
+        final radius = math.min(rectClamped.width, rectClamped.height) / 2;
+        outW = (radius * 2).toInt();
+        outH = (radius * 2).toInt();
+        // Área del círculo: π * r²
+        selectionArea = math.pi * radius * radius;
+      } else {
+        outW = rectClamped.width.toInt();
+        outH = rectClamped.height.toInt();
+        // Área del rectángulo: w * h
+        selectionArea = outW * outH.toDouble();
+      }
+    }
+
+    // Calcular ~MB aproximado
+    // pixelRatio = selectionArea / imageArea
+    final imageArea = imgW * imgH.toDouble();
+    final pixelRatio = imageArea > 0 ? selectionArea / imageArea : 0.0;
+    
+    // formatFactor según extensión
+    double formatFactor = 1.0;
+    if (extensionLower == '.png') {
+      formatFactor = 1.05;
+    } else if (extensionLower == '.jpg' || extensionLower == '.jpeg') {
+      formatFactor = 0.95;
+    }
+    
+    final estimatedBytes = math.max(8192, (originalBytes * pixelRatio * formatFactor).toInt());
+    
+    // Actualizar estado
+    _approxWidthPx = outW;
+    _approxHeightPx = outH;
+    _approxBytes = estimatedBytes;
+    
+    final baseName = _selectionVersionBaseName ?? 'imagen';
+    _approxLabelLeft = 'Selección: $baseName$extensionLower';
+    
+    notifyListeners();
+  }
+
+  /// Actualiza métricas aproximadas para color preset
+  /// 
+  /// Calcula ~MB de forma aproximada e instantánea.
+  void updateColorApproxMetrics({
+    required int? imgW,
+    required int? imgH,
+    required int? originalBytes,
+    required String? extensionLower,
+    required ColorMode preset,
+  }) {
+    // Si no hay datos necesarios, limpiar métricas
+    if (imgW == null || imgH == null || originalBytes == null || 
+        extensionLower == null) {
+      _approxWidthPx = 0;
+      _approxHeightPx = 0;
+      _approxBytes = 0;
+      _approxLabelLeft = null;
+      notifyListeners();
+      return;
+    }
+
+    // WxH = imgW×imgH
+    _approxWidthPx = imgW;
+    _approxHeightPx = imgH;
+
+    // Calcular presetFactor según preset y formato
+    double presetFactor = 1.0;
+    if (preset == ColorMode.grayscale) {
+      presetFactor = (extensionLower == '.png') ? 0.85 : 0.90;
+    } else if (preset == ColorMode.sepia) {
+      presetFactor = (extensionLower == '.png') ? 0.95 : 0.97;
+    } else if (preset == ColorMode.blackAndWhite) {
+      presetFactor = (extensionLower == '.png') ? 0.80 : 0.88;
+    } else {
+      // Color: 1.00
+      presetFactor = 1.00;
+    }
+
+    final estimatedBytes = math.max(8192, (originalBytes * presetFactor).toInt());
+    
+    // Actualizar estado
+    _approxBytes = estimatedBytes;
+    
+    String presetName;
+    switch (preset) {
+      case ColorMode.grayscale:
+        presetName = 'Grises';
+        break;
+      case ColorMode.sepia:
+        presetName = 'Sepia';
+        break;
+      case ColorMode.blackAndWhite:
+        presetName = 'B&N';
+        break;
+      case ColorMode.color:
+        presetName = 'Color';
+        break;
+    }
+    _approxLabelLeft = 'Color: $presetName';
+    
+    notifyListeners();
+  }
+
+  /// Establece el tamaño del canvas para mapeo
+  void setCanvasSize(Size? size) {
+    _canvasSize = size;
+  }
+
+  /// Calcula el rect de la imagen dentro del canvas usando BoxFit.contain
+  /// 
+  /// Retorna el rectángulo donde se renderiza la imagen dentro del canvas,
+  /// respetando el aspect ratio y centrándola.
+  Rect _calculateImageRectInCanvas(Size canvasSize, Size imageSize) {
+    if (imageSize.width <= 0 || imageSize.height <= 0) {
+      return Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height);
+    }
+
+    final imageAspect = imageSize.width / imageSize.height;
+    final canvasAspect = canvasSize.width / canvasSize.height;
+
+    double width, height;
+    if (imageAspect > canvasAspect) {
+      // Imagen más ancha: ajustar al ancho del canvas
+      width = canvasSize.width;
+      height = width / imageAspect;
+    } else {
+      // Imagen más alta: ajustar al alto del canvas
+      height = canvasSize.height;
+      width = height * imageAspect;
+    }
+
+    // Centrar
+    final left = (canvasSize.width - width) / 2;
+    final top = (canvasSize.height - height) / 2;
+
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  @override
+  void dispose() {
+    _selectionThrottleTimer?.cancel();
+    super.dispose();
   }
 }

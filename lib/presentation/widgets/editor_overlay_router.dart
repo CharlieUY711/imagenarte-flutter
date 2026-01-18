@@ -3,11 +3,11 @@ import 'package:imagenarte/application/editor_ui_state.dart';
 import 'package:imagenarte/presentation/widgets/geometric_selection_overlay.dart';
 import 'package:imagenarte/presentation/widgets/color_overlay.dart';
 import 'package:imagenarte/presentation/widgets/classic_adjustments_overlay.dart';
-import 'package:imagenarte/presentation/widgets/scissors_overlay.dart';
 import 'package:imagenarte/presentation/widgets/blur_overlay_panel.dart';
 import 'package:imagenarte/presentation/widgets/pixelate_overlay_panel.dart';
 import 'package:imagenarte/presentation/widgets/watermark_overlay_panel.dart';
 import 'package:imagenarte/presentation/widgets/metadata_overlay.dart';
+import 'package:imagenarte/presentation/widgets/scissors_overlay.dart';
 import 'package:provider/provider.dart';
 
 /// Router único de overlays (SINGLE SOURCE OF TRUTH)
