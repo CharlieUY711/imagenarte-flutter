@@ -39,3 +39,14 @@
 *.swp
 *.swo
 *~
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.vite/
+**/.turbo/
+**/.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
