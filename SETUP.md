@@ -1,5 +1,22 @@
 # Guía de Configuración: Imagen@rte
 
+## Root Canónico
+
+**Workspace raíz:** `C:\Users\cvara\Imagen@rte`  
+**App Flutter:** `apps\imagenarte`
+
+### Comandos Oficiales
+
+Todos los comandos Flutter deben ejecutarse desde `apps\imagenarte`:
+
+```bash
+cd apps\imagenarte
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```
+
 ## Requisitos Previos
 
 - Flutter SDK >= 3.0.0
@@ -17,19 +34,17 @@ flutter doctor
 
 ### 2. Instalar Dependencias
 
-Navegar al directorio de la app móvil:
+Navegar al directorio de la app Flutter:
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter pub get
 ```
-
-Esto instalará automáticamente las dependencias de los packages locales (core, processing, watermark).
 
 ### 3. Configurar Android
 
 - Asegurarse de tener Android SDK instalado
-- Configurar `local.properties` en `apps/mobile/android/` con la ruta del SDK:
+- Configurar `local.properties` en `apps\imagenarte\android\` con la ruta del SDK:
   ```
   sdk.dir=C:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
   ```
@@ -37,7 +52,7 @@ Esto instalará automáticamente las dependencias de los packages locales (core,
 ### 4. Configurar iOS (solo macOS)
 
 ```bash
-cd apps/mobile/ios
+cd apps\imagenarte\ios
 pod install
 ```
 
@@ -46,36 +61,51 @@ pod install
 ### Android
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter run
 ```
 
 O desde Android Studio:
-1. Abrir `apps/mobile` como proyecto
+1. Abrir `apps\imagenarte` como proyecto
 2. Seleccionar dispositivo/emulador
 3. Ejecutar
 
 ### iOS
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter run
 ```
 
 O desde Xcode:
-1. Abrir `apps/mobile/ios/Runner.xcworkspace`
+1. Abrir `apps\imagenarte\ios\Runner.xcworkspace`
 2. Seleccionar dispositivo/simulador
 3. Ejecutar
 
-## Estructura de Packages
+## Estructura del Workspace
 
-El proyecto usa packages locales:
+```
+C:\Users\cvara\Imagen@rte\
+  apps\
+    imagenarte\          # App Flutter principal
+  docs\                  # Documentación común
+    AUDIT\               # Documentación de auditoría (canónica)
+      imagenarte\        # Auditoría específica de imagenarte
+  packages\              # Packages locales (si existen)
+  design-tools\          # Herramientas de diseño (si existen)
+  figma_extracted\       # Assets extraídos de Figma (si existen)
+```
 
-- `packages/core`: Dominio y casos de uso
-- `packages/processing`: Pipeline de procesamiento
-- `packages/watermark`: Sistema de watermarks
+### Regla Canónica: Documentación de Auditoría
 
-Estos se configuran automáticamente en `apps/mobile/pubspec.yaml`.
+**Toda la documentación de auditoría vive en:** `docs\AUDIT\<app-name>\`
+
+- ✅ **Canónico:** `docs\AUDIT\imagenarte\`
+- ❌ **Legacy (no usar):** `apps\imagenarte\docs\AUDIT_*`
+
+Las apps NO contienen documentación de auditoría. Esta regla es estructural y no afecta código, tests ni build.
+
+Nota: La app Flutter actual (`apps\imagenarte`) no tiene dependencias de packages locales en `pubspec.yaml`.
 
 ## Solución de Problemas
 
@@ -83,13 +113,13 @@ Estos se configuran automáticamente en `apps/mobile/pubspec.yaml`.
 
 Ejecutar:
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter pub get
 ```
 
 ### Error: "Android SDK not found"
 
-Crear `apps/mobile/android/local.properties` con:
+Crear `apps\imagenarte\android\local.properties` con:
 ```
 sdk.dir=RUTA_A_TU_ANDROID_SDK
 ```
@@ -97,36 +127,23 @@ sdk.dir=RUTA_A_TU_ANDROID_SDK
 ### Error de compilación en iOS
 
 ```bash
-cd apps/mobile/ios
+cd apps\imagenarte\ios
 pod deintegrate
 pod install
 ```
 
 ## Desarrollo
 
-### Agregar Nueva Operación
+Trabajar desde `apps\imagenarte`:
 
-1. Crear archivo en `packages/processing/lib/ops/nueva_op/`
-2. Implementar clase con método `apply(String imagePath, OperationParams params)`
-3. Agregar `OperationType` en `packages/core/lib/domain/operation.dart`
-4. Registrar en `packages/processing/lib/pipeline/image_pipeline.dart`
-5. Agregar UI en `apps/mobile/lib/ui/screens/wizard/wizard_screen.dart`
-
-### Agregar Nuevo Package
-
-1. Crear directorio `packages/nuevo_package/`
-2. Crear `pubspec.yaml` con nombre del package
-3. Crear estructura `lib/`
-4. Agregar dependencia en `apps/mobile/pubspec.yaml`:
-   ```yaml
-   nuevo_package:
-     path: ../../packages/nuevo_package
-   ```
+```bash
+cd apps\imagenarte
+```
 
 ## Testing
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter test
 ```
 
@@ -135,21 +152,21 @@ flutter test
 ### Android APK
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter build apk --release
 ```
 
 ### Android App Bundle
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter build appbundle --release
 ```
 
 ### iOS
 
 ```bash
-cd apps/mobile
+cd apps\imagenarte
 flutter build ios --release
 ```
 
