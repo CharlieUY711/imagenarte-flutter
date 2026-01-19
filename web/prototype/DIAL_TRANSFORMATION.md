@@ -400,3 +400,4 @@ La transformación **in-place** del mismo contenedor es:
 **Imagen@rte v3.0**  
 *Dial Buttons con Transformación In-Place*  
 **Fecha:** 2026-01-13
+

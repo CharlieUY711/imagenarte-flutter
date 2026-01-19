@@ -2,7 +2,7 @@
 
 **Versión:** 3.0 (Wizard con Preview Persistente)  
 **Fecha:** 2026-01-13  
-**Estado:** Prototipo completo según brief de diseño Figma
+**Estado:** Prototipo completo según brief de diseño herramienta de dise�o
 
 ---
 
@@ -78,12 +78,12 @@
 **Audiencia:** Todos (flujo v2 - iteración anterior)  
 **Lectura:** 15 min
 
-**⚠️ NOTA:** Este fue el flujo v2. Ver FIGMA_SPEC.md para la versión v3 actual con preview persistente.
+**⚠️ NOTA:** Este fue el flujo v2. Ver DESIGN_SPEC.md para la versión v3 actual con preview persistente.
 
 ---
 
-### [FIGMA_SPEC.md](./FIGMA_SPEC.md) ⭐ VERSIÓN ACTUAL (v3)
-**Especificación completa para diseño en Figma**
+### [DESIGN_SPEC.md](./DESIGN_SPEC.md) ⭐ VERSIÓN ACTUAL (v3)
+**Especificación completa para diseño en herramienta de dise�o**
 - Wizard con preview persistente (sin procesamiento en tiempo real)
 - 4 operaciones MVP (pixelar, blur, crop, quitar fondo)
 - Panel Export con procesamiento
@@ -95,7 +95,7 @@
 
 **Audiencia:** Diseñadores UX/UI, PM, Developers  
 **Lectura:** 30 min  
-**Estado:** ✅ Especificación final para Figma
+**Estado:** ✅ Especificación final para herramienta de dise�o
 
 ---
 
@@ -191,7 +191,7 @@
 /
 ├── README.md              ⭐ Empieza aquí (v3.0)
 ├── INDEX.md               📚 Este documento
-├── FIGMA_SPEC.md          🎨 Especificación para Figma (v3 - ACTUAL) ⭐
+├── DESIGN_SPEC.md          🎨 Especificación para herramienta de dise�o (v3 - ACTUAL) ⭐
 ├── TESTING.md             🧪 Guía de testing
 ├── FLUJO.md               🗺️  Diagrama de flujo (v1 - wizard original)
 ├── FLUJO_v2.md            🗺️  Flujo simplificado (v2 - iteración anterior)
@@ -247,14 +247,14 @@
 5. Analizar → Métricas de TESTING.md
 ```
 
-### Para Diseño en Figma
+### Para Diseño en herramienta de dise�o
 
 ```
 1. Explorar → Prototipo completo
 2. Revisar → COMPONENTS.md (componentes)
 3. Validar → FLUJO.md (navegación)
 4. Documentar → Decisiones de diseño
-5. Crear → Sistema en Figma basado en tokens
+5. Crear → Sistema en herramienta de dise�o basado en tokens
 ```
 
 ### Para Implementación Flutter
@@ -350,8 +350,8 @@
 - ⏳ Testing con usuarios reales
 - ⏳ Análisis de feedback
 
-### Fase 2: Diseño Figma
-- [ ] Sistema de componentes en Figma
+### Fase 2: Diseño herramienta de dise�o
+- [ ] Sistema de componentes en herramienta de dise�o
 - [ ] Pantallas pixel-perfect
 - [ ] Guía de estilo completa
 - [ ] Documentación de animaciones
@@ -426,7 +426,7 @@ Tipos: Bug, Mejora, Pregunta, Documentación
 ✅ **Confirmar simplicidad del MVP**
 
 ❌ **NO es producto final**  
-❌ **NO reemplaza diseño en Figma**  
+❌ **NO reemplaza diseño en herramienta de dise�o**  
 ❌ **NO es implementación Flutter**
 
 ---

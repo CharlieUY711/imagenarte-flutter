@@ -2,17 +2,17 @@
 
 **Versión:** 3.0 (Wizard con Preview Persistente)  
 **Fecha:** 2026-01-13  
-**Estado:** Prototipo completo según brief de diseño Figma
+**Estado:** Prototipo completo según brief de diseño herramienta de dise�o
 
 ---
 
 ## 🎯 ¿Qué es esto?
 
-Prototipo funcional **mobile-first** de Imagen@rte que sirve como **referencia visual exacta** para el diseño en Figma.
+Prototipo funcional **mobile-first** de Imagen@rte que sirve como **referencia visual exacta** para el diseño en herramienta de dise�o.
 
 **Decisión UX clave:** La imagen seleccionada permanece siempre visible (sin procesamiento en tiempo real). El procesamiento real ocurre en la pantalla Export.
 
-**Objetivo:** Validar flujo UX y servir como guía de implementación antes del diseño pixel-perfect en Figma.
+**Objetivo:** Validar flujo UX y servir como guía de implementación antes del diseño pixel-perfect en herramienta de dise�o.
 
 ---
 
@@ -100,7 +100,7 @@ HOME → Seleccionar imagen → WIZARD (preview persistente) → EXPORT (procesa
    - Preview SÍ cambia en Export
    - Accordions expandibles
    - Toggle DISABLED en "Quitar fondo"
-5. **Usar como referencia** para diseño en Figma
+5. **Usar como referencia** para diseño en herramienta de dise�o
 
 ### Como Tester
 
@@ -208,7 +208,7 @@ Canvas API:
 ## 📄 Documentación Completa
 
 ### Para Diseñadores
-- **[FIGMA_SPEC.md](./FIGMA_SPEC.md)** - Especificación completa para diseño en Figma
+- **[DESIGN_SPEC.md](./DESIGN_SPEC.md)** - Especificación completa para diseño en herramienta de dise�o
   - Todos los estados del wizard
   - Copy exacto
   - Dimensiones y proporciones
@@ -246,8 +246,8 @@ El usuario debe sentir:
 ## 🚀 Próximos Pasos
 
 1. **Validar prototipo web** con stakeholders
-2. **Diseñar en Figma** usando FIGMA_SPEC.md como guía
-3. **Testing de usabilidad** con prototipo Figma
+2. **Diseñar en herramienta de dise�o** usando DESIGN_SPEC.md como guía
+3. **Testing de usabilidad** con prototipo herramienta de dise�o
 4. **Iterar basándose en feedback**
 5. **Implementar en Flutter**
 
@@ -256,14 +256,14 @@ El usuario debe sentir:
 ## 📞 Uso de este Prototipo
 
 ### ✅ Este prototipo ES:
-- Referencia visual para diseño Figma
+- Referencia visual para diseño herramienta de dise�o
 - Validación de flujo UX
 - Demo interactivo para stakeholders
 - Guía de comportamiento de componentes
 
 ### ❌ Este prototipo NO ES:
 - Implementación final (será Flutter)
-- Diseño pixel-perfect (será Figma)
+- Diseño pixel-perfect (será herramienta de dise�o)
 - Sistema de procesamiento real (es simulación)
 
 ---
@@ -288,7 +288,7 @@ Al explorar el prototipo, validar:
 > **El procesamiento real ocurre en la pantalla de Export.**  
 > **No hay preview procesado en tiempo real en este paso."**
 
-Esta decisión UX es **obligatoria** y debe respetarse en todas las fases del proyecto (Figma, Flutter, testing).
+Esta decisión UX es **obligatoria** y debe respetarse en todas las fases del proyecto (herramienta de dise�o, Flutter, testing).
 
 ---
 
@@ -297,4 +297,5 @@ Esta decisión UX es **obligatoria** y debe respetarse en todas las fases del pr
 
 **Fecha:** 2026-01-13  
 **Estado:** ✅ Completo según especificación de diseño  
-**Próximo paso:** Diseñar frames en Figma usando FIGMA_SPEC.md
+**Próximo paso:** Diseñar frames en herramienta de dise�o usando DESIGN_SPEC.md
+

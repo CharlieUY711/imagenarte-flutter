@@ -15,7 +15,7 @@ Crear un prototipo interactivo de **Imagen@rte** para validar:
 - Simplicidad y minimalismo de la interfaz
 
 **Este prototipo NO es producto final.** Es una herramienta de testing UX antes de:
-1. Diseño pixel-perfect en Figma
+1. Diseño pixel-perfect en herramienta de dise�o
 2. Implementación nativa en Flutter
 
 ---
@@ -199,7 +199,7 @@ Success: "Exportación lista" → Tratar otra imagen
 1. Revisar copy y flujo
 2. Validar que la UI sea minimalista y sobria
 3. Detectar inconsistencias visuales
-4. Proponer ajustes antes de diseñar en Figma
+4. Proponer ajustes antes de diseñar en herramienta de dise�o
 
 ### Para Testers UX
 1. Seguir los escenarios en `TESTING.md`
@@ -223,7 +223,7 @@ Success: "Exportación lista" → Tratar otra imagen
 4. **Simplificar** si algo se siente complejo
 
 ### Antes de Implementación Final
-1. **Diseñar en Figma** (pixel-perfect, sistema de componentes)
+1. **Diseñar en herramienta de dise�o** (pixel-perfect, sistema de componentes)
 2. **Crear guía de estilo** (colores exactos, tipografía, iconos)
 3. **Definir animaciones** (transiciones, loading states)
 4. **Documentar casos edge** (errores, límites de tamaño de imagen)
@@ -320,7 +320,7 @@ Success: "Exportación lista" → Tratar otra imagen
 ## 🎁 Valor del Prototipo
 
 ### Para el Equipo
-- **Diseño:** Validar conceptos antes de invertir en Figma
+- **Diseño:** Validar conceptos antes de invertir en herramienta de dise�o
 - **Desarrollo:** Entender flujo antes de codear Flutter
 - **UX:** Detectar problemas temprano (más barato que post-release)
 - **Producto:** Validar que el MVP es "mínimo" de verdad
@@ -350,3 +350,4 @@ Success: "Exportación lista" → Tratar otra imagen
 **Imagen@rte v1.0 - Prototipo de validación UX**  
 *Tratamiento y protección de imágenes, sin nube.*  
 **Fecha:** 2026-01-13
+

@@ -28,3 +28,4 @@ const controller = useTransformController({
 ## API
 
 La API es idéntica al módulo `transform` original, pero con la garantía de que solo se usará con círculos. El core compartido maneja automáticamente la restricción de modo MOVE para círculos.
+

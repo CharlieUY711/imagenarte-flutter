@@ -11,7 +11,7 @@
 
 ### Instalación
 ```bash
-# Ya está instalado en Figma Make
+# Ya está instalado en template de referencia
 # Si necesitas reinstalar:
 npm install
 # o
@@ -20,7 +20,7 @@ pnpm install
 
 ### Ejecutar Localmente
 ```bash
-# El prototipo se ejecuta automáticamente en Figma Make
+# El prototipo se ejecuta automáticamente en template de referencia
 # Si estás en otro entorno:
 npm run dev
 # o
@@ -299,3 +299,4 @@ Cuando termines el testing:
 **Última actualización:** 2026-01-13  
 **Versión del prototipo:** 1.0  
 **Estado:** Listo para testing
+

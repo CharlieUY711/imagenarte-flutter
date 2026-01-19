@@ -1,8 +1,8 @@
-# Imagen@rte - Especificación de Diseño UX/UI (Figma)
+# Imagen@rte - Especificación de Diseño UX/UI (herramienta de dise�o)
 
 **PROYECTO:** Imagen@rte (MVP Imagen)  
 **OBJETIVO:** Wizard con preview persistente  
-**VERSIÓN:** 3.0 (Final para Figma)  
+**VERSIÓN:** 3.0 (Final para herramienta de dise�o)  
 **FECHA:** 2026-01-13
 
 ---
@@ -135,7 +135,7 @@ Layout vertical, mobile-first (390×844):
 
 ---
 
-### Nota UX Obligatoria (Incluir en Frame de Figma)
+### Nota UX Obligatoria (Incluir en Frame de herramienta de dise�o)
 
 Agregar un pequeño callout en la parte inferior del preview:
 
@@ -480,7 +480,7 @@ El usuario debe sentir que:
 
 ---
 
-## 📱 FRAMES A DISEÑAR EN FIGMA
+## 📱 FRAMES A DISEÑAR EN herramienta de dise�o
 
 ### 1. WizardActions - Estado Empty
 - Preview: placeholder "Selecciona una imagen"
@@ -531,7 +531,7 @@ El usuario debe sentir que:
 
 ## 🔍 CHECKLIST DE VALIDACIÓN
 
-Antes de finalizar el diseño en Figma, verificar:
+Antes de finalizar el diseño en herramienta de dise�o, verificar:
 
 - [ ] La imagen en WizardActions NUNCA muestra efectos procesados
 - [ ] El preview es claramente la imagen ORIGINAL
@@ -548,9 +548,9 @@ Antes de finalizar el diseño en Figma, verificar:
 
 ## 🚀 PRÓXIMOS PASOS
 
-1. **Diseñar frames en Figma** según esta especificación
+1. **Diseñar frames en herramienta de dise�o** según esta especificación
 2. **Validar con stakeholders** que cumple el criterio de simplicidad
-3. **Crear prototipo interactivo** en Figma para testing
+3. **Crear prototipo interactivo** en herramienta de dise�o para testing
 4. **Realizar testing de usabilidad** con usuarios reales
 5. **Iterar basándose en feedback**
 6. **Entregar a desarrollo** (Flutter) con specs completas
@@ -561,5 +561,6 @@ Antes de finalizar el diseño en Figma, verificar:
 *Tratamiento de imágenes con control visual constante.*
 
 **Fecha:** 2026-01-13  
-**Estado:** ✅ Especificación completa para diseño en Figma  
-**Próximo paso:** Diseñar frames en Figma
+**Estado:** ✅ Especificación completa para diseño en herramienta de dise�o  
+**Próximo paso:** Diseñar frames en herramienta de dise�o
+

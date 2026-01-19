@@ -365,9 +365,9 @@ Al agregar el motivo a nuevas pantallas:
 
 ---
 
-## 🎨 Exportar el Motivo para Figma
+## 🎨 Exportar el Motivo para herramienta de dise�o
 
-Si quieres usar el motivo en diseños de Figma:
+Si quieres usar el motivo en diseños de herramienta de dise�o:
 
 ### SVG del arco de progreso (100%)
 
@@ -409,3 +409,4 @@ Si quieres usar el motivo en diseños de Figma:
 **Última actualización:** 2026-01-13  
 **Estado:** Implementado en prototipo v1.0  
 **Criterio de permanencia:** Sujeto a feedback de testing UX
+

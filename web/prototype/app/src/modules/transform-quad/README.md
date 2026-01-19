@@ -38,3 +38,4 @@ const controller = useTransformController({
 ## API
 
 La API es idéntica al módulo `transform` original, pero con la garantía de que solo se usará con cuadriláteros. El core compartido maneja automáticamente la detección de zonas y los modos MOVE/ROTATE.
+

@@ -235,3 +235,4 @@ Al finalizar cada escenario, preguntar:
 
 **Fecha de última actualización:** 2026-01-13  
 **Versión del prototipo:** 1.0
+

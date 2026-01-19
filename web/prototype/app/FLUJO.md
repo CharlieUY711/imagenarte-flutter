@@ -393,3 +393,4 @@ En cada paso del Wizard y en Export:
 ---
 
 **Nota:** Este es un diagrama textual de referencia. El prototipo funcional tiene la UI completa con estilos, colores y elementos interactivos reales.
+

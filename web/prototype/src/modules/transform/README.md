@@ -228,3 +228,4 @@ El Playground (`src/playground/TransformPlayground/`) es un ejemplo de uso del m
 - Las transformaciones son deterministas y testeables
 - El reducer es puro (sin side-effects)
 - **IMPORTANTE**: Solo hay UNA vía oficial de consumo desde la app: usar los exports de `@/modules/transform` o sus sub-módulos públicos
+

@@ -110,3 +110,4 @@ Para probar la PWA localmente:
 3. Sigue las instrucciones de instalación según tu plataforma
 
 **Nota**: Para que funcione correctamente, es recomendable usar un túnel HTTPS (como ngrok) o desplegar en un servidor con HTTPS habilitado.
+

@@ -89,3 +89,4 @@ Este directorio contiene código que **DUPLICA** funcionalidad del módulo ofici
 ## Acción Requerida
 
 **DECISIÓN PENDIENTE**: Determinar si se necesita la funcionalidad de resize. Si no, deprecar `app/transform/`. Si sí, documentar claramente la diferencia y considerar extender el módulo oficial.
+

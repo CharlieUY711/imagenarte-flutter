@@ -252,7 +252,7 @@ Severidades:
 - [ ] ¿El flujo es suficientemente simple?
 - [ ] ¿El copy es claro?
 - [ ] ¿Hay que agregar/quitar features?
-- [ ] ¿Está listo para diseñar en Figma?
+- [ ] ¿Está listo para diseñar en herramienta de dise�o?
 
 ---
 
@@ -260,7 +260,7 @@ Severidades:
 
 ### Si el testing es exitoso (>80% métricas verdes):
 1. [ ] Documentar decisiones finales
-2. [ ] Crear brief para diseño en Figma
+2. [ ] Crear brief para diseño en herramienta de dise�o
 3. [ ] Definir sistema de componentes
 4. [ ] Planificar implementación Flutter
 
@@ -291,3 +291,4 @@ Severidades:
 **Última actualización:** 2026-01-13  
 **Versión del prototipo:** 1.0  
 **Estado:** Listo para testing
+
