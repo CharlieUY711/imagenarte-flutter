@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
 import 'package:imagenarte/app/theme/app_spacing.dart';
+import 'package:imagenarte/application/editor_state.dart';
+import 'package:imagenarte/presentation/widgets/tool_options_inline.dart';
 
 class EditorBottomBar extends StatelessWidget {
-  const EditorBottomBar({super.key});
+  final EditorState editorState;
+
+  const EditorBottomBar({
+    super.key,
+    required this.editorState,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,17 +45,9 @@ class EditorBottomBar extends StatelessWidget {
               ),
             ),
           ),
-          // Área central: tool options placeholder
+          // Área central: tool options inline
           Expanded(
-            child: Center(
-              child: Text(
-                'Opciones',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.foreground.withAlpha(128),
-                ),
-              ),
-            ),
+            child: ToolOptionsInline(editorState: editorState),
           ),
           // Botón Save (derecha)
           Padding(

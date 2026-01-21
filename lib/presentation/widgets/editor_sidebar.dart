@@ -1,74 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
 import 'package:imagenarte/app/theme/app_spacing.dart';
+import 'package:imagenarte/application/editor_state.dart';
+import 'package:imagenarte/domain/editor_tool.dart';
 
-class EditorSidebar extends StatefulWidget {
-  const EditorSidebar({super.key});
+class EditorSidebar extends StatelessWidget {
+  final EditorState editorState;
 
-  @override
-  State<EditorSidebar> createState() => _EditorSidebarState();
-}
-
-class _EditorSidebarState extends State<EditorSidebar> {
-  int? _selectedIndex;
+  const EditorSidebar({
+    super.key,
+    required this.editorState,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border(
-          right: BorderSide(
-            color: AppColors.foreground.withAlpha(26),
-            width: 1,
+    return ListenableBuilder(
+      listenable: editorState,
+      builder: (context, child) {
+        return Container(
+          width: 72,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            border: Border(
+              right: BorderSide(
+                color: AppColors.foreground.withAlpha(26),
+                width: 1,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: Column(
-        children: [
-          _buildToolButton(
-            icon: Icons.transform,
-            label: 'Transform',
-            index: 0,
+          child: Column(
+            children: [
+              _buildToolButton(
+                icon: Icons.transform,
+                label: 'Transform',
+                tool: EditorTool.transform,
+              ),
+              _buildToolButton(
+                icon: Icons.crop,
+                label: 'Mask',
+                tool: EditorTool.mask,
+              ),
+              _buildToolButton(
+                icon: Icons.blur_on,
+                label: 'Blur',
+                tool: EditorTool.blur,
+              ),
+              _buildToolButton(
+                icon: Icons.grid_off,
+                label: 'Pixelate',
+                tool: EditorTool.pixelate,
+              ),
+              _buildToolButton(
+                icon: Icons.water_drop,
+                label: 'Watermark',
+                tool: EditorTool.watermark,
+              ),
+            ],
           ),
-          _buildToolButton(
-            icon: Icons.crop,
-            label: 'Mask',
-            index: 1,
-          ),
-          _buildToolButton(
-            icon: Icons.blur_on,
-            label: 'Blur',
-            index: 2,
-          ),
-          _buildToolButton(
-            icon: Icons.grid_off,
-            label: 'Pixelate',
-            index: 3,
-          ),
-          _buildToolButton(
-            icon: Icons.water_drop,
-            label: 'Watermark',
-            index: 4,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildToolButton({
     required IconData icon,
     required String label,
-    required int index,
+    required EditorTool tool,
   }) {
-    final isSelected = _selectedIndex == index;
+    final isSelected = editorState.selectedTool == tool;
     return InkWell(
       onTap: () {
-        setState(() {
-          _selectedIndex = isSelected ? null : index;
-        });
-        // Placeholder: sin funcionalidad
+        editorState.setTool(tool);
       },
       child: Container(
         width: double.infinity,
