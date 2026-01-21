@@ -43,3 +43,37 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ============================================
+# BARRERAS PREVENTIVAS F3 - Prototipos Web y Artefactos No-Flutter
+# ============================================
+# Estas exclusiones previenen que prototipos web/npm y exports entren al repositorio.
+# Ver docs/workflows/REPO_BARRIERS.md para más detalles.
+
+# Prototipos web (NO deben estar en repo Flutter-first)
+figma_extracted/
+web/prototype/
+
+# Artefactos npm/yarn/pnpm
+**/node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Builds y artefactos de herramientas web
+**/dist/
+**/build_artifacts/
+**/.next/
+**/.turbo/
+**/.vite/
+**/.parcel-cache/
+**/.cache/
+
+# Exports y temporales
+exports/
+tmp/
+backup/
+*.log
+
+# Coverage (ya existe pero reforzamos)
+**/coverage/
