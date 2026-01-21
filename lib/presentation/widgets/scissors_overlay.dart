@@ -128,6 +128,10 @@ class ScissorsOverlay extends StatelessWidget {
       
       // Si hay path libre, usar ese
       if (freehandPathImage != null) {
+        if (!context.mounted) {
+          uiState.setContext(EditorContext.none);
+          return;
+        }
         await _applyFreehandScissors(
           context: context,
           uiState: uiState,
@@ -135,6 +139,20 @@ class ScissorsOverlay extends StatelessWidget {
           freehandPathImage: freehandPathImage,
           isInterior: isInterior,
         );
+        return;
+      }
+      
+      // Guard clause: geometry debe existir para continuar
+      if (geometry == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No hay selección válida'),
+              backgroundColor: AppColors.danger,
+            ),
+          );
+        }
+        uiState.setContext(EditorContext.none);
         return;
       }
       
@@ -318,6 +336,12 @@ class ScissorsOverlay extends StatelessWidget {
     required Path freehandPathImage,
     required bool isInterior,
   }) async {
+    // Guard clause: verificar que context esté montado antes de operaciones async
+    if (!context.mounted) {
+      uiState.setContext(EditorContext.none);
+      return;
+    }
+    
     try {
       // Crear máscara desde el path
       final bounds = freehandPathImage.getBounds();
