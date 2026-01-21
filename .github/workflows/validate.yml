@@ -1,0 +1,47 @@
+---
+name: Validate YAML
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install js-yaml
+        run: npm install js-yaml
+
+      - name: Validate data/projects.yml syntax
+        run: |
+          node -e "
+          const fs = require('fs');
+          const yaml = require('js-yaml');
+
+          const file = 'data/projects.yml';
+
+          if (!fs.existsSync(file)) {
+            console.error('❌ File not found:', file);
+            process.exit(1);
+          }
+
+          try {
+            const content = fs.readFileSync(file, 'utf8');
+            yaml.load(content);
+            console.log('✅ YAML syntax is valid:', file);
+          } catch (err) {
+            console.error('❌ YAML syntax error in', file);
+            console.error(err.message);
+            process.exit(1);
+          }
+          "
