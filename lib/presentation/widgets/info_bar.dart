@@ -353,7 +353,7 @@ class _InfoBarState extends State<InfoBar> {
       return Stack(
         children: [
           Positioned(
-            left: EditorTokens.kContentHPad,
+            left: 15.0, // 15px según contrato
             top: 0,
             bottom: 0,
             child: Center(
@@ -376,9 +376,15 @@ class _InfoBarState extends State<InfoBar> {
       );
     }
     
-    final divisor1Position = barWidth * 0.5; // Divisor del centro (50%)
-    final divisor2Position = barWidth * 0.75; // Divisor a 3/4 (75%)
-    final iconSlotWidth = EditorTokens.kContentHPad + EditorTokens.kIconSize + EditorTokens.kIconGap;
+    // Divisores según contrato: 40px izquierda, 50%, 75%, 40px derecha
+    final divisor1Position = 40.0; // 40px desde izquierda
+    final divisor2Position = barWidth * 0.5; // 50%
+    final divisor3Position = barWidth * 0.75; // 75%
+    final divisor4Position = barWidth - 40.0; // 40px desde derecha
+    
+    // Iconos extremos: Home a 15px izquierda, Save a 15px derecha
+    final homeIconLeft = 15.0;
+    final saveIconRight = 15.0;
     
     // Leer información de la imagen activa visible en el preview
     final activePreviewName = widget.editorState?.activePreviewName ?? '';
@@ -398,10 +404,9 @@ class _InfoBarState extends State<InfoBar> {
           
           return Stack(
             children: [
-              // Casita fija a 16dp desde la izquierda, centrada verticalmente
-              // SIEMPRE visible, incluso durante reconstrucciones
+              // Home icon: borde izquierdo a 15px del borde izquierdo
               Positioned(
-                left: EditorTokens.kContentHPad,
+                left: homeIconLeft,
                 top: 0,
                 bottom: 0,
                 child: Center(
@@ -420,9 +425,9 @@ class _InfoBarState extends State<InfoBar> {
                   ),
                 ),
               ),
-              // Disco fijo a 16dp desde la derecha, centrado verticalmente
+              // Save icon: borde derecho a 15px del borde derecho
               Positioned(
-                right: EditorTokens.kContentHPad,
+                right: saveIconRight,
                 top: 0,
                 bottom: 0,
                 child: Center(
@@ -442,7 +447,7 @@ class _InfoBarState extends State<InfoBar> {
                   ),
                 ),
               ),
-              // Divisor 1: a la mitad de la barra (50%) - FIJO
+              // Divisor 1: 40px desde izquierda (invisible, mismo color que barra)
               Positioned(
                 left: divisor1Position,
                 top: 0,
@@ -451,11 +456,11 @@ class _InfoBarState extends State<InfoBar> {
                   child: Container(
                     width: 0.5,
                     height: 12.0,
-                    color: Colors.black,
+                    color: AppColors.accent, // Mismo color que barra (invisible)
                   ),
                 ),
               ),
-              // Divisor 2: a 3/4 de la barra (75%) - FIJO
+              // Divisor 2: 50% del ancho total
               Positioned(
                 left: divisor2Position,
                 top: 0,
@@ -464,16 +469,40 @@ class _InfoBarState extends State<InfoBar> {
                   child: Container(
                     width: 0.5,
                     height: 12.0,
-                    color: Colors.black,
+                    color: AppColors.accent, // Mismo color que barra (invisible)
                   ),
                 ),
               ),
-              // ESPACIO 1: Nombre del archivo (entre casita y divisor del centro)
-              // Alineado al margen izquierdo
-              // Leer SIEMPRE de EditorState.activePreviewName (imagen visible en preview)
+              // Divisor 3: 75% del ancho total
               Positioned(
-                left: iconSlotWidth,
-                right: barWidth - divisor1Position,
+                left: divisor3Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: AppColors.accent, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Divisor 4: 40px desde derecha (invisible, mismo color que barra)
+              Positioned(
+                left: divisor4Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: AppColors.accent, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Campo 1: entre Divisor 1 (40px) y Divisor 2 (50%) - Nombre del archivo
+              Positioned(
+                left: divisor1Position,
+                right: barWidth - divisor2Position,
                 top: 0,
                 bottom: 0,
                 child: Align(
@@ -500,12 +529,10 @@ class _InfoBarState extends State<InfoBar> {
                   ),
                 ),
               ),
-              // ESPACIO 2: Definición/resolución (entre divisor del centro y divisor a 3/4)
-              // Centrado entre los divisores
-              // Leer SIEMPRE de EditorState.activePreviewW/H (imagen visible en preview)
+              // Campo 2: entre Divisor 2 (50%) y Divisor 3 (75%) - Resolución
               Positioned(
-                left: divisor1Position,
-                right: barWidth - divisor2Position,
+                left: divisor2Position,
+                right: barWidth - divisor3Position,
                 top: 0,
                 bottom: 0,
                 child: Center(
@@ -529,12 +556,10 @@ class _InfoBarState extends State<InfoBar> {
                   ),
                 ),
               ),
-              // ESPACIO 3: Tamaño del archivo (entre divisor a 3/4 y disco)
-              // Alineado al margen derecho
-              // Leer SIEMPRE de EditorState.activePreviewBytes (imagen visible en preview)
+              // Campo 3: entre Divisor 3 (75%) y Divisor 4 (40px desde derecha) - Tamaño
               Positioned(
-                left: divisor2Position,
-                right: iconSlotWidth,
+                left: divisor3Position,
+                right: barWidth - divisor4Position,
                 top: 0,
                 bottom: 0,
                 child: Align(
@@ -589,14 +614,20 @@ class _InfoBarState extends State<InfoBar> {
             return const SizedBox.shrink();
           }
           
-          final divisor1Position = barWidth * 0.5; // Divisor del centro (50%)
-          final divisor2Position = barWidth * 0.75; // Divisor a 3/4 (75%)
-          final iconSlotWidth = EditorTokens.kContentHPad + EditorTokens.kIconSize + EditorTokens.kIconGap;
+          // Divisores según contrato: 40px izquierda, 50%, 75%, 40px derecha (misma grilla que TopBar)
+          final divisor1Position = 40.0; // 40px desde izquierda
+          final divisor2Position = barWidth * 0.5; // 50%
+          final divisor3Position = barWidth * 0.75; // 75%
+          final divisor4Position = barWidth - 40.0; // 40px desde derecha
+          
+          // Iconos extremos: a 15px según contrato
+          final iconLeft = 15.0;
+          final iconRight = 15.0;
           
           // Validar posiciones
-          if (divisor1Position <= 0 || divisor2Position <= 0 || 
-              divisor1Position >= barWidth || divisor2Position >= barWidth ||
-              divisor1Position >= divisor2Position) {
+          if (divisor1Position <= 0 || divisor2Position <= 0 || divisor3Position <= 0 || divisor4Position <= 0 ||
+              divisor1Position >= barWidth || divisor2Position >= barWidth || divisor3Position >= barWidth || divisor4Position >= barWidth ||
+              divisor1Position >= divisor2Position || divisor2Position >= divisor3Position || divisor3Position >= divisor4Position) {
             return const SizedBox.shrink();
           }
           
@@ -663,10 +694,62 @@ class _InfoBarState extends State<InfoBar> {
           
           return Stack(
             children: [
-              // Icono de inversión abajo de la casita (izquierda)
+              // Divisor 1: 40px desde izquierda (invisible, mismo color que barra)
+              Positioned(
+                left: divisor1Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: Colors.white, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Divisor 2: 50% del ancho total
+              Positioned(
+                left: divisor2Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: Colors.white, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Divisor 3: 75% del ancho total
+              Positioned(
+                left: divisor3Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: Colors.white, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Divisor 4: 40px desde derecha (invisible, mismo color que barra)
+              Positioned(
+                left: divisor4Position,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 0.5,
+                    height: 12.0,
+                    color: Colors.white, // Mismo color que barra (invisible)
+                  ),
+                ),
+              ),
+              // Icono de inversión (izquierda) - a 15px según contrato
               if (hasValidSelection)
                 Positioned(
-                  left: EditorTokens.kContentHPad,
+                  left: iconLeft,
                   top: 0,
                   bottom: 0,
                   child: Center(
@@ -682,10 +765,10 @@ class _InfoBarState extends State<InfoBar> {
                     ),
                   ),
                 ),
-              // ESPACIO 1: Label izquierdo (nombre editable para selección, label para color)
+              // Campo 1: entre Divisor 1 (40px) y Divisor 2 (50%) - Label izquierdo
               Positioned(
-                left: iconSlotWidth,
-                right: barWidth - divisor1Position,
+                left: divisor1Position,
+                right: barWidth - divisor2Position,
                 top: 0,
                 bottom: 0,
                 child: Align(
@@ -722,11 +805,10 @@ class _InfoBarState extends State<InfoBar> {
                           : const SizedBox.shrink()),
                 ),
               ),
-              // ESPACIO 2: Definición de la selección (entre divisor del centro y divisor a 3/4)
-              // Centrado entre los divisores (sin divisores visibles)
+              // Campo 2: entre Divisor 2 (50%) y Divisor 3 (75%) - Definición de la selección
               Positioned(
-                left: divisor1Position,
-                right: barWidth - divisor2Position,
+                left: divisor2Position,
+                right: barWidth - divisor3Position,
                 top: 0,
                 bottom: 0,
                 child: Center(
@@ -744,11 +826,10 @@ class _InfoBarState extends State<InfoBar> {
                       : const SizedBox.shrink(),
                 ),
               ),
-              // ESPACIO 3: Tamaño estimado (entre divisor a 3/4 y disco/tijera)
-              // Alineado al margen derecho (misma posición que barra naranja)
+              // Campo 3: entre Divisor 3 (75%) y Divisor 4 (40px desde derecha) - Tamaño estimado
               Positioned(
-                left: divisor2Position,
-                right: iconSlotWidth,
+                left: divisor3Position,
+                right: barWidth - divisor4Position,
                 top: 0,
                 bottom: 0,
                 child: Align(
@@ -767,10 +848,10 @@ class _InfoBarState extends State<InfoBar> {
                       : const SizedBox.shrink(),
                 ),
               ),
-              // Icono de tijera abajo del disco (derecha) - solo para selección
+              // Icono de tijera (derecha) - a 15px según contrato, solo para selección
               if (hasValidSelection && isSelectionTool)
                 Positioned(
-                  right: EditorTokens.kContentHPad,
+                  right: iconRight,
                   top: 0,
                   bottom: 0,
                   child: Center(
@@ -793,20 +874,28 @@ class _InfoBarState extends State<InfoBar> {
       );
     }
 
-    // Modo support: mensajes y tips alineados al margen izquierdo (mismo que barra superior)
+    // Modo support (InfoBarHelp): mensajes circulan de derecha a izquierda
+    // entre 40px desde la izquierda y 40px desde la derecha
     return LayoutBuilder(
       builder: (context, constraints) {
-        final iconSlotWidth = EditorTokens.kContentHPad + EditorTokens.kIconSize + EditorTokens.kIconGap;
+        final barWidth = constraints.maxWidth;
+        if (barWidth <= 0 || !barWidth.isFinite) {
+          return const SizedBox.shrink();
+        }
+        
+        // Área delimitada: 40px desde izquierda, 40px desde derecha
+        final leftMargin = 40.0;
+        final rightMargin = 40.0;
         
         return Stack(
           children: [
             Positioned(
-              left: iconSlotWidth,
-              right: 0,
+              left: leftMargin,
+              right: rightMargin,
               top: 0,
               bottom: 0,
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.centerRight, // Derecha a izquierda: empezar desde la derecha
                 child: _buildSupportContent(uiState),
               ),
             ),
@@ -828,17 +917,10 @@ class _InfoBarState extends State<InfoBar> {
 
   Widget _buildSupportContent(EditorUiState uiState) {
     final supportMessage = uiState.supportMessageText ?? 'Selecciona una herramienta para comenzar';
-    return Text(
-      supportMessage,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: AppColors.accent,
-      ),
-      overflow: TextOverflow.ellipsis,
+    return _TickerText(
+      text: supportMessage,
     );
   }
-
 
   String? _getSelectionDefinition(EditorUiState uiState) {
     // Usar métricas aproximadas REALES si están disponibles
@@ -1140,6 +1222,119 @@ class _InfoBarState extends State<InfoBar> {
         );
       }
     }
+  }
+}
+
+/// Widget de ticker horizontal que desplaza texto de derecha a izquierda
+/// Acotado entre 40px izquierda y 40px derecha según UI_CONTRACT.md
+class _TickerText extends StatefulWidget {
+  final String text;
+
+  const _TickerText({
+    required this.text,
+  });
+
+  @override
+  State<_TickerText> createState() => _TickerTextState();
+}
+
+class _TickerTextState extends State<_TickerText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 20), // Duración del ciclo completo
+      vsync: this,
+    )..repeat(); // Repetir continuamente
+
+    // Animación que va de 1.0 a -1.0 (derecha a izquierda)
+    _animation = Tween<double>(begin: 1.0, end: -1.0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth;
+        if (viewportWidth <= 0 || !viewportWidth.isFinite) {
+          return const SizedBox.shrink();
+        }
+
+        // Medir el ancho del texto
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: widget.text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.accent,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final textWidth = textPainter.size.width;
+
+        // Si el texto cabe en el viewport, no necesita animación
+        if (textWidth <= viewportWidth) {
+          return Center(
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.accent,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          );
+        }
+
+        // Calcular el rango de desplazamiento
+        // El texto debe moverse desde viewportWidth (derecha) hasta -textWidth (izquierda)
+        // Cuando animation = 1.0: texto empieza desde la derecha (offsetX = viewportWidth)
+        // Cuando animation = -1.0: texto termina completamente fuera por la izquierda (offsetX = -textWidth)
+        final startOffset = viewportWidth; // Texto empieza desde la derecha
+        final endOffset = -textWidth; // Texto termina completamente fuera por la izquierda
+
+        return AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            // Calcular la posición X basada en la animación
+            // _animation.value va de 1.0 a -1.0, necesitamos mapearlo a startOffset..endOffset
+            final t = (_animation.value + 1.0) / 2.0; // Normalizar a 0.0..1.0
+            final offsetX = startOffset + t * (endOffset - startOffset);
+
+            return ClipRect(
+              child: Transform.translate(
+                offset: Offset(offsetX, 0),
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.accent,
+                  ),
+                  overflow: TextOverflow.visible,
+                  maxLines: 1,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 

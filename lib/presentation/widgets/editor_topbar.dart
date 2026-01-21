@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
 
-class EditorTopbar extends StatelessWidget {
-  const EditorTopbar({super.key});
+class TopBar extends StatelessWidget {
+  const TopBar({super.key});
 
   @override
   Widget build(BuildContext context) {

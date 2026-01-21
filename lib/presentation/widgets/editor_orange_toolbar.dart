@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:imagenarte/app/theme/app_colors.dart';
 import 'package:imagenarte/application/editor_ui_state.dart';
+import 'package:imagenarte/application/editor_state.dart';
 import 'package:imagenarte/presentation/theme/editor_tokens.dart';
+import 'package:imagenarte/presentation/widgets/tool_options_inline.dart';
 import 'package:provider/provider.dart';
 
 class EditorOrangeToolbar extends StatelessWidget {
   final String? imagePath;
+  final EditorState editorState;
 
   const EditorOrangeToolbar({
     super.key,
     this.imagePath,
+    required this.editorState,
   });
 
   @override
@@ -23,7 +27,8 @@ class EditorOrangeToolbar extends StatelessWidget {
               color: AppColors.accent,
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: EditorTokens.kContentHPad),
+              // Iconos extremos: primer icono a 15px izquierda, último icono a 15px derecha
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
               child: Row(
                 children: [
                   // Grupo izquierdo: Herramientas de selección y acciones
@@ -73,7 +78,12 @@ class EditorOrangeToolbar extends StatelessWidget {
                   ),
                   // Espacio flexible entre grupos
                   const Spacer(),
-                  // Grupo derecho: Color, Ajustes y Undo
+                  // Tool options inline (centro)
+                  Expanded(
+                    child: ToolOptionsInline(editorState: editorState),
+                  ),
+                  const Spacer(),
+                  // Grupo derecho: Color y Ajustes
                   Row(
                     children: [
                       // Grupo 3: Color y Ajustes
@@ -89,10 +99,6 @@ class EditorOrangeToolbar extends StatelessWidget {
                         tool: EditorTool.classicAdjustments,
                         uiState: uiState,
                       ),
-                      // Doble espacio
-                      const SizedBox(width: 32),
-                      // Undo
-                      _buildUndoButton(uiState: uiState),
                     ],
                   ),
                 ],
@@ -113,7 +119,7 @@ class EditorOrangeToolbar extends StatelessWidget {
     final isActive = uiState.activeTool == tool || uiState.activeContext == _getContextForTool(tool);
     return GestureDetector(
       onTap: () {
-        uiState.setActiveTool(tool);
+        uiState.selectToolFromMainMenu(tool);
       },
       child: SizedBox(
         height: EditorTokens.kBarHeight,
@@ -165,7 +171,7 @@ class EditorOrangeToolbar extends StatelessWidget {
     final isActive = uiState.activeTool == tool;
     return GestureDetector(
       onTap: () {
-        uiState.toggleTool(tool);
+        uiState.selectToolFromMainMenu(tool);
       },
       child: SizedBox(
         height: EditorTokens.kBarHeight,
@@ -192,28 +198,5 @@ class EditorOrangeToolbar extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildUndoButton({required EditorUiState uiState}) {
-    return GestureDetector(
-      onTap: uiState.canUndo
-          ? () {
-              uiState.setActiveTool(EditorTool.undo);
-            }
-          : null,
-      child: SizedBox(
-        height: EditorTokens.kBarHeight,
-        child: Center(
-          child: Icon(
-            Icons.undo,
-            color: uiState.canUndo
-                ? AppColors.foreground
-                : AppColors.foreground.withAlpha(128),
-            size: 18,
-          ),
-        ),
-      ),
-    );
-  }
-
 
 }

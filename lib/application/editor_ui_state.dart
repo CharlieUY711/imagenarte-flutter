@@ -190,9 +190,9 @@ class EditorUiState extends ChangeNotifier {
   Timer? _selectionThrottleTimer;
   static const Duration _selectionThrottleDelay = Duration(milliseconds: 50);
 
-  // Undo stack con capacidad de 10
+  // Undo stack con capacidad de 15
   final List<EditorSnapshot> _undoStack = [];
-  static const int _maxUndoLevels = 10;
+  static const int _maxUndoLevels = 15;
 
   EditorTool get activeTool => _activeTool;
   EditorContext get activeContext => _activeContext;
@@ -273,6 +273,26 @@ class EditorUiState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Selecciona una herramienta desde el Menú Principal con reset total
+  /// 
+  /// Este método DEBE ser llamado SOLO cuando el evento proviene del Menú Principal.
+  /// Realiza un reset completo de la herramienta actual y limpia todos los artefactos UI
+  /// antes de activar la nueva herramienta.
+  /// 
+  /// A) Si tool == activeTool: igual aplicar reset + limpiar + reactivar (consistencia)
+  /// B) Ejecuta en orden:
+  ///    1. _resetToolStateHard()  // resetea cualquier estado específico de tool
+  ///    2. _clearUiArtifacts()    // limpia rastros visuales / overlays tool / selección
+  ///    3. setActiveTool(tool)     // activa la herramienta y muestra su UI
+  void selectToolFromMainMenu(EditorTool tool) {
+    // A) Aplicar reset incluso si es la misma herramienta (consistencia)
+    _resetToolStateHard();
+    _clearUiArtifacts();
+    
+    // B) Activar la herramienta (esto también establece el contexto y muestra su UI)
+    setActiveTool(tool);
+  }
+
   void setActiveTool(EditorTool tool) {
     // Undo y Save no cambian el tool activo, solo ejecutan acciones
     if (tool == EditorTool.undo) {
@@ -294,6 +314,11 @@ class EditorUiState extends ChangeNotifier {
       _activeTool = tool;
       notifyListeners();
       return;
+    }
+    
+    // Reset por herramienta: si cambiamos de herramienta, resetear la anterior
+    if (_activeTool != tool && _activeTool != EditorTool.none) {
+      resetToolState();
     }
     
     _activeTool = tool;
@@ -395,6 +420,131 @@ class EditorUiState extends ChangeNotifier {
       // Activar el nuevo tool (esto establece el contexto)
       setActiveTool(tool);
     }
+  }
+
+  /// Resetea el estado de la herramienta anterior al cambiar de herramienta
+  /// Limpia selección activa, overlays específicos de tool, y sliders temporales
+  /// 
+  /// NO borra el estado global (imagen actual) ni undo stack
+  void resetToolState() {
+    // Limpiar selección activa
+    _selectionGeometry = null;
+    _freeSelectionPath = null;
+    _freehandPathCanvas = null;
+    _freehandPathImage = null;
+    _freehandPointsCanvas.clear();
+    _freehandBoundsImagePx = null;
+    _activeTransformTarget = TransformTarget.none;
+    
+    // Reset sliders temporales (blur/pixel) a valores neutros
+    _blurIntensity = 50.0;
+    _pixelateIntensity = 50.0;
+    
+    // Reset otros estados de tool
+    _cropPreset = null;
+    _selectionMode = SelectionMode.geometric;
+    _selectionInverted = false;
+    
+    // Nota: Los overlays específicos de tool se limpian automáticamente
+    // cuando setContext() es llamado con el nuevo contexto en setActiveTool()
+  }
+
+  /// Resetea por completo el estado específico de la herramienta activa
+  /// 
+  /// Este método resetea todos los valores relacionados con la herramienta actual:
+  /// - blurIntensity / pixelIntensity a defaults (50.0)
+  /// - maskShape a default (no aplica aquí, está en EditorState)
+  /// - Limpia cualquier selección activa (geom/freehand/scissors)
+  /// - Cierra flags de overlays tool (si existen)
+  /// - Limpia cualquier modo temporal (move/resize placeholders, etc.)
+  /// 
+  /// NO borra:
+  /// - imagen actual (imagePath + metadata visible)
+  /// - stack de Undo global
+  /// - navegación/catálogo
+  void _resetToolStateHard() {
+    // Reset intensidades a valores neutros
+    _blurIntensity = 50.0;
+    _pixelateIntensity = 50.0;
+    _watermarkOpacity = 100.0;
+    
+    // Reset ajustes clásicos a valores neutros
+    _brightness = 50.0;
+    _contrast = 50.0;
+    _saturation = 50.0;
+    _sharpness = 50.0;
+    _activeClassicAdjustment = null;
+    
+    // Reset color mode a default
+    _colorMode = ColorMode.color;
+    
+    // Limpiar cualquier selección activa
+    _selectionGeometry = null;
+    _freeSelectionPath = null;
+    _freehandPathCanvas = null;
+    _freehandPathImage = null;
+    _freehandPointsCanvas.clear();
+    _freehandBoundsImagePx = null;
+    _isDrawingFreehand = false;
+    _selectionMode = SelectionMode.geometric;
+    _selectionInverted = false;
+    
+    // Reset crop preset
+    _cropPreset = null;
+    
+    // Reset transform target
+    _activeTransformTarget = TransformTarget.none;
+    
+    // Limpiar activeAction (si existe)
+    _activeAction = null;
+    
+    // Reset métricas aproximadas
+    _approxWidthPx = 0;
+    _approxHeightPx = 0;
+    _approxBytes = 0;
+    _approxLabelLeft = null;
+    
+    // Reset mensajes de estado
+    _statusMessage = null;
+    _structuredInfoText = null;
+    _supportMessageText = null;
+    _whiteBarMode = WhiteBarMode.support;
+  }
+
+  /// Limpia todos los artefactos visuales de la UI
+  /// 
+  /// Este método elimina cualquier rastro visual/estado anterior:
+  /// - Vacía listas de puntos/paths
+  /// - Quita handles/rects/frames visibles
+  /// - Limpia cualquier "preview overlay" específico de tool
+  /// 
+  /// IMPORTANTE:
+  /// - NO borra imagen actual (imagePath + metadata visible)
+  /// - NO borra stack de Undo global
+  /// - NO borra navegación/catálogo
+  void _clearUiArtifacts() {
+    // Limpiar paths y puntos de selección libre
+    _freeSelectionPath = null;
+    _freehandPathCanvas = null;
+    _freehandPathImage = null;
+    _freehandPointsCanvas.clear();
+    _freehandBoundsImagePx = null;
+    _isDrawingFreehand = false;
+    
+    // Limpiar geometría de selección (handles/rects/frames visibles)
+    _selectionGeometry = null;
+    
+    // Limpiar geometría de watermark (si es temporal)
+    // Nota: No reseteamos _watermarkGeometry aquí porque puede ser persistente
+    // Solo limpiamos el transform target si no hay watermark
+    if (_watermarkGeometry == null) {
+      _activeTransformTarget = TransformTarget.none;
+    }
+    
+    // Limpiar contexto activo (esto cierra overlays)
+    // Nota: setContext(EditorContext.none) se llamará después en setActiveTool,
+    // pero aquí aseguramos que no queden overlays residuales
+    // (setActiveTool manejará el contexto correcto para la nueva tool)
   }
 
   void _resetTool(EditorTool tool) {
@@ -896,10 +1046,14 @@ class EditorUiState extends ChangeNotifier {
   }
 
   /// Guarda el estado actual en el undo stack
+  /// 
+  /// TODO: Asegurar que pushUndo se llama cuando se confirma un cambio (aplicar efecto).
+  /// Por ahora, pushUndo se llama desde los overlay panels cuando se aplican efectos.
+  /// También debería llamarse cuando se carga la imagen inicial para permitir undo al estado original.
   void pushUndo() {
     final snapshot = _createSnapshot();
     _undoStack.add(snapshot);
-    // Limitar a 10 niveles
+    // Limitar a 15 niveles
     if (_undoStack.length > _maxUndoLevels) {
       _undoStack.removeAt(0);
     }
@@ -1105,6 +1259,9 @@ class EditorUiState extends ChangeNotifier {
   }
 
   /// Realiza el cálculo aproximado de métricas para selección
+  /// 
+  /// Calcula resolución de salida REAL (W×H px) y tamaño estimado REAL (~MB)
+  /// usando intersección con el rect de la imagen y heurísticas de formato.
   void _performSelectionApproxMetrics({
     required int imgW,
     required int imgH,
@@ -1114,8 +1271,23 @@ class EditorUiState extends ChangeNotifier {
   }) {
     // Verificar si es selección libre o geométrica
     if (_freehandPathImage != null && _freehandBoundsImagePx != null) {
-      // Selección libre
+      // Selección libre: ya está en coordenadas de imagen
       final bounds = _freehandBoundsImagePx!;
+      
+      // Intersectar bounds con rect de imagen (0,0,imgW,imgH)
+      final imageRect = Rect.fromLTWH(0, 0, imgW.toDouble(), imgH.toDouble());
+      final intersectRect = bounds.intersect(imageRect);
+      
+      // Verificar si hay intersección válida
+      if (intersectRect.isEmpty || intersectRect.width <= 0 || intersectRect.height <= 0) {
+        // Selección inválida: fuera de la imagen
+        _approxWidthPx = 0;
+        _approxHeightPx = 0;
+        _approxBytes = 0;
+        _approxLabelLeft = null;
+        notifyListeners();
+        return;
+      }
       
       int outW, outH;
       double selectionArea;
@@ -1126,31 +1298,25 @@ class EditorUiState extends ChangeNotifier {
         outH = imgH;
         selectionArea = imgW * imgH.toDouble();
       } else {
-        // Interior: usar bounding box del path
-        outW = bounds.width.toInt().clamp(0, imgW);
-        outH = bounds.height.toInt().clamp(0, imgH);
+        // Interior: usar bounding box del path intersectado
+        outW = intersectRect.width.round().clamp(1, imgW);
+        outH = intersectRect.height.round().clamp(1, imgH);
         
         // Calcular área aproximada usando shoelace formula
         selectionArea = _calculatePathArea(_freehandPathImage!);
         if (selectionArea <= 0) {
-          // Fallback: usar área del bounding box con factor 0.85
-          selectionArea = bounds.width * bounds.height * 0.85;
+          // Fallback: usar área del bounding box intersectado
+          selectionArea = intersectRect.width * intersectRect.height;
         }
+        // Clamp al área de la imagen
+        selectionArea = selectionArea.clamp(0.0, imgW * imgH.toDouble());
       }
       
-      // Calcular ~MB aproximado
-      final imageArea = imgW * imgH.toDouble();
-      final pixelRatio = imageArea > 0 ? selectionArea / imageArea : 0.0;
-      
-      // formatFactor según extensión
-      double formatFactor = 1.0;
-      if (extensionLower == '.png') {
-        formatFactor = 1.05;
-      } else if (extensionLower == '.jpg' || extensionLower == '.jpeg') {
-        formatFactor = 0.95;
-      }
-      
-      final estimatedBytes = math.max(8192, (originalBytes * pixelRatio * formatFactor).toInt());
+      // Calcular tamaño estimado REAL usando heurísticas de formato
+      final estimatedBytes = _estimateFileSizeBytes(
+        outPixels: outW * outH,
+        extensionLower: extensionLower,
+      );
       
       // Actualizar estado
       _approxWidthPx = outW;
@@ -1175,46 +1341,46 @@ class EditorUiState extends ChangeNotifier {
 
     final geometry = _selectionGeometry!;
     
-    // Mapear geometría del canvas a coordenadas de imagen usando BoxFit.contain
+    // PASO 1: Obtener rect de la imagen pintada en el canvas (BoxFit.contain)
     final imageSize = Size(imgW.toDouble(), imgH.toDouble());
-    final imageRect = _calculateImageRectInCanvas(canvasSize, imageSize);
+    final paintedImageRect = _calculateImageRectInCanvas(canvasSize, imageSize);
     
-    // Calcular escala y offset
-    final scaleX = imgW / imageRect.width;
-    final scaleY = imgH / imageRect.height;
+    // PASO 2: Obtener bounding box de la selección en coordenadas canvas
+    final selectionRectCanvas = geometry.boundingBox;
     
-    // Mapear coordenadas del canvas a coordenadas relativas a imageRect
-    final relativeCenter = Offset(
-      geometry.center.dx - imageRect.left,
-      geometry.center.dy - imageRect.top,
-    );
+    // PASO 3: Intersectar selección con rect pintado de la imagen
+    final intersectRect = selectionRectCanvas.intersect(paintedImageRect);
     
-    // Escalar a coordenadas de imagen
-    final scaledCenter = Offset(
-      relativeCenter.dx * scaleX,
-      relativeCenter.dy * scaleY,
-    );
-    final scaledSize = Size(
-      geometry.size.width * scaleX,
-      geometry.size.height * scaleY,
-    );
+    // PASO 4: Verificar si hay intersección válida
+    if (intersectRect.isEmpty || intersectRect.width <= 0 || intersectRect.height <= 0) {
+      // Selección inválida: fuera de la imagen
+      _approxWidthPx = 0;
+      _approxHeightPx = 0;
+      _approxBytes = 0;
+      _approxLabelLeft = null;
+      notifyListeners();
+      return;
+    }
     
-    final scaledGeometry = TransformableGeometry(
-      shape: geometry.shape,
-      center: scaledCenter,
-      size: scaledSize,
-      rotation: geometry.rotation,
-    );
+    // PASO 5: Mapear intersección a coordenadas de imagen (image-space)
+    final scaleX = imgW / paintedImageRect.width;
+    final scaleY = imgH / paintedImageRect.height;
     
-    final rectInImage = scaledGeometry.boundingBox;
-    final rectClamped = Rect.fromLTWH(
-      rectInImage.left.clamp(0.0, imgW.toDouble()),
-      rectInImage.top.clamp(0.0, imgH.toDouble()),
-      rectInImage.width.clamp(0.0, (imgW - rectInImage.left).clamp(0.0, imgW.toDouble())),
-      rectInImage.height.clamp(0.0, (imgH - rectInImage.top).clamp(0.0, imgH.toDouble())),
-    );
-
-    // Calcular WxH px
+    // Normalizar intersección relativa al paintedImageRect
+    final relativeLeft = intersectRect.left - paintedImageRect.left;
+    final relativeTop = intersectRect.top - paintedImageRect.top;
+    final relativeWidth = intersectRect.width;
+    final relativeHeight = intersectRect.height;
+    
+    // Mapear a image-space
+    final outLeft = (relativeLeft * scaleX).clamp(0.0, imgW.toDouble());
+    final outTop = (relativeTop * scaleY).clamp(0.0, imgH.toDouble());
+    final outWidth = (relativeWidth * scaleX).clamp(0.0, (imgW - outLeft).clamp(0.0, imgW.toDouble()));
+    final outHeight = (relativeHeight * scaleY).clamp(0.0, (imgH - outTop).clamp(0.0, imgH.toDouble()));
+    
+    final rectInImage = Rect.fromLTWH(outLeft, outTop, outWidth, outHeight);
+    
+    // PASO 6: Calcular W×H px de salida
     int outW, outH;
     double selectionArea;
     
@@ -1224,35 +1390,31 @@ class EditorUiState extends ChangeNotifier {
       outH = imgH;
       selectionArea = imgW * imgH.toDouble();
     } else {
-      // Interior: recortar a la selección
+      // Interior: recortar a la selección intersectada
       if (geometry.shape == TransformableShape.circle) {
-        final radius = math.min(rectClamped.width, rectClamped.height) / 2;
-        outW = (radius * 2).toInt();
-        outH = (radius * 2).toInt();
+        // Para círculo: usar el diámetro del rect intersectado
+        final diameter = math.min(rectInImage.width, rectInImage.height);
+        final radius = diameter / 2;
+        outW = diameter.round().clamp(1, imgW);
+        outH = diameter.round().clamp(1, imgH);
         // Área del círculo: π * r²
         selectionArea = math.pi * radius * radius;
+        // Clamp al área de la imagen
+        selectionArea = selectionArea.clamp(0.0, imgW * imgH.toDouble());
       } else {
-        outW = rectClamped.width.toInt();
-        outH = rectClamped.height.toInt();
+        // Rectángulo: usar dimensiones del rect intersectado
+        outW = rectInImage.width.round().clamp(1, imgW);
+        outH = rectInImage.height.round().clamp(1, imgH);
         // Área del rectángulo: w * h
         selectionArea = outW * outH.toDouble();
       }
     }
 
-    // Calcular ~MB aproximado
-    // pixelRatio = selectionArea / imageArea
-    final imageArea = imgW * imgH.toDouble();
-    final pixelRatio = imageArea > 0 ? selectionArea / imageArea : 0.0;
-    
-    // formatFactor según extensión
-    double formatFactor = 1.0;
-    if (extensionLower == '.png') {
-      formatFactor = 1.05;
-    } else if (extensionLower == '.jpg' || extensionLower == '.jpeg') {
-      formatFactor = 0.95;
-    }
-    
-    final estimatedBytes = math.max(8192, (originalBytes * pixelRatio * formatFactor).toInt());
+    // PASO 7: Calcular tamaño estimado REAL usando heurísticas de formato
+    final estimatedBytes = _estimateFileSizeBytes(
+      outPixels: outW * outH,
+      extensionLower: extensionLower,
+    );
     
     // Actualizar estado
     _approxWidthPx = outW;
@@ -1263,6 +1425,34 @@ class EditorUiState extends ChangeNotifier {
     _approxLabelLeft = 'Selección: $baseName$extensionLower';
     
     notifyListeners();
+  }
+  
+  /// Estima el tamaño de archivo en bytes usando heurísticas realistas
+  /// basadas en formato y número de píxeles.
+  /// 
+  /// - PNG: 3.0-4.0 bytes por píxel (sin compresión real, aproximación)
+  /// - JPG: 0.2-0.6 bytes por píxel (ratio típico, usar 0.4 como default)
+  int _estimateFileSizeBytes({
+    required int outPixels,
+    required String extensionLower,
+  }) {
+    if (outPixels <= 0) return 0;
+    
+    double bytesPerPixel;
+    if (extensionLower == '.png') {
+      // PNG: usar 3.5 B/px como promedio (rango 3.0-4.0)
+      bytesPerPixel = 3.5;
+    } else if (extensionLower == '.jpg' || extensionLower == '.jpeg') {
+      // JPG: usar 0.4 B/px como promedio (rango 0.2-0.6)
+      bytesPerPixel = 0.4;
+    } else {
+      // Formato desconocido: usar promedio conservador
+      bytesPerPixel = 2.0;
+    }
+    
+    final estimatedBytes = (outPixels * bytesPerPixel).toInt();
+    // Mínimo 1KB para evitar valores muy pequeños
+    return math.max(1024, estimatedBytes);
   }
 
   /// Actualiza métricas aproximadas para color preset
